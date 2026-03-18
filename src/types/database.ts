@@ -335,6 +335,7 @@ export type Database = {
           icon: string | null
           id: string
           is_hidden: boolean
+          metadata: Json | null
           name: string
           slug: string
           tenant_id: string | null
@@ -348,6 +349,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_hidden?: boolean
+          metadata?: Json | null
           name: string
           slug: string
           tenant_id?: string | null
@@ -361,6 +363,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_hidden?: boolean
+          metadata?: Json | null
           name?: string
           slug?: string
           tenant_id?: string | null
@@ -634,24 +637,30 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_path: string | null
           avatar_url: string | null
           email: string
           full_name: string | null
           id: string
+          timezone: string | null
           updated_at: string
         }
         Insert: {
+          avatar_path?: string | null
           avatar_url?: string | null
           email: string
           full_name?: string | null
           id: string
+          timezone?: string | null
           updated_at?: string
         }
         Update: {
+          avatar_path?: string | null
           avatar_url?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          timezone?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -723,6 +732,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_apps: {
+        Row: {
+          app_id: string
+          app_name: string
+          app_secret_hash: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          app_id: string
+          app_name: string
+          app_secret_hash: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          app_id?: string
+          app_name?: string
+          app_secret_hash?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_apps_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_apps_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -870,28 +933,37 @@ export type Database = {
       }
       tenants: {
         Row: {
+          contact_email: string | null
+          contact_name: string | null
           created_at: string
           id: string
           is_super: boolean
           name: string
           settings: Json
           slug: string
+          timezone: string
         }
         Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
           created_at?: string
           id?: string
           is_super?: boolean
           name: string
           settings?: Json
           slug: string
+          timezone?: string
         }
         Update: {
+          contact_email?: string | null
+          contact_name?: string | null
           created_at?: string
           id?: string
           is_super?: boolean
           name?: string
           settings?: Json
           slug?: string
+          timezone?: string
         }
         Relationships: []
       }

@@ -9,6 +9,12 @@ import { AssignUserDialog } from "@/components/assign-user-dialog";
 import { MemberActions } from "@/components/member-actions";
 import { TenantSwitcher } from "@/components/tenant-switcher";
 
+const STATUS_STYLES: Record<string, string> = {
+  active: "border-green-500/40 text-green-400",
+  inactive: "border-zinc-600 text-gray-500",
+  suspended: "border-orange-500/40 text-orange-400",
+};
+
 export default async function UsersPage({
   searchParams,
 }: {
@@ -39,6 +45,7 @@ export default async function UsersPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let allTenants: any[] = [];
   let isSuperTenant = false;
+  let availableRoles: { slug: string; name: string }[] = [];
 
   if (user && tenantId) {
     if (isSuperAdmin) {
@@ -55,9 +62,32 @@ export default async function UsersPage({
 
     const { data } = await supabase
       .from("tenant_users")
-      .select("user_id, role, is_active, profiles(email, full_name)")
+      .select("user_id, role, is_active, status, profiles(email, full_name)")
       .eq("tenant_id", tenantId);
     members = data ?? [];
+
+    // Fetch custom roles for this tenant + system roles (excluding super_admin)
+    const { data: rolesData } = await supabase
+      .from("roles")
+      .select("name, slug, is_system, tenant_id")
+      .or(`tenant_id.eq.${tenantId},is_system.eq.true`)
+      .order("is_system", { ascending: false })
+      .order("name");
+
+    if (rolesData) {
+      availableRoles = rolesData
+        .filter((r) => r.slug !== "super_admin")
+        .map((r) => ({ slug: r.slug, name: r.name }));
+    }
+
+    // If no roles from DB, provide defaults
+    if (availableRoles.length === 0) {
+      availableRoles = [
+        { slug: "tenant_admin", name: "Tenant Admin" },
+        { slug: "manager", name: "Manager" },
+        { slug: "employee", name: "Employee" },
+      ];
+    }
   }
 
   return (
@@ -109,43 +139,46 @@ export default async function UsersPage({
                 </TableCell>
               </TableRow>
             ) : (
-              members.map((m, i) => (
-                <TableRow
-                  key={m.user_id}
-                  className={`border-gray-100 hover:bg-gray-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
-                >
-                  <TableCell className="text-gray-900 font-medium">{m.profiles?.full_name || "—"}</TableCell>
-                  <TableCell className="text-gray-500">{m.profiles?.email || "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="border-blue-500/40 text-blue-600 text-xs">{m.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={m.is_active
-                        ? "border-green-500/40 text-green-400 text-xs"
-                        : "border-zinc-600 text-gray-500 text-xs"}
-                    >
-                      {m.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {tenantId && (
-                      <MemberActions
-                        userId={m.user_id}
-                        tenantId={tenantId}
-                        currentRole={m.role}
-                        fullName={m.profiles?.full_name || ""}
-                        email={m.profiles?.email || ""}
-                        isActive={m.is_active}
-                        isSuperAdmin={isSuperAdmin}
-                        isSuperTenant={isSuperTenant}
-                        allTenants={allTenants}
-                      />
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+              members.map((m, i) => {
+                const memberStatus = m.status || (m.is_active ? "active" : "inactive");
+                const statusStyle = STATUS_STYLES[memberStatus] || STATUS_STYLES.inactive;
+                return (
+                  <TableRow
+                    key={m.user_id}
+                    className={`border-gray-100 hover:bg-gray-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
+                  >
+                    <TableCell className="text-gray-900 font-medium">{m.profiles?.full_name || "—"}</TableCell>
+                    <TableCell className="text-gray-500">{m.profiles?.email || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-blue-500/40 text-blue-600 text-xs">{m.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`${statusStyle} text-xs capitalize`}
+                      >
+                        {memberStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {tenantId && (
+                        <MemberActions
+                          userId={m.user_id}
+                          tenantId={tenantId}
+                          currentRole={m.role}
+                          fullName={m.profiles?.full_name || ""}
+                          email={m.profiles?.email || ""}
+                          status={memberStatus}
+                          isSuperAdmin={isSuperAdmin}
+                          isSuperTenant={isSuperTenant}
+                          allTenants={allTenants}
+                          availableRoles={availableRoles}
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

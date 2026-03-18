@@ -26,6 +26,25 @@ _None — awaiting user decisions on complex bugs (see docs/BUG_FIX_PLAN.md)_
 
 ### Recently Completed
 
+- **API App Credentials (18 Mar 26)** — dual-mode API auth: app credentials + user tokens
+  - Migration `00023_tenant_apps.sql` — `tenant_apps` table with RLS, seeded RBAC page permissions + nav items
+  - `POST /api/auth/token` — exchange `app_id` + `app_secret` for short-lived JWT (1hr, HS256)
+  - `src/app/api/_lib/jwt.ts` — JWT sign/verify helpers using `jose` library
+  - `src/app/api/_lib/api-auth.ts` — `resolveApiContext()` now supports dual-mode:
+    - Mode A (app): Bearer JWT from `/api/auth/token` — tenant embedded, no `X-Tenant-Id` needed
+    - Mode B (user): Supabase user token + `X-Tenant-Id` header (unchanged, backward compatible)
+  - `ApiContext` type: `userId` now `string | null`, added `appId` and `authMode` fields
+  - `src/app/actions/apps.ts` — server actions: `createApp`, `rotateAppSecret`, `toggleApp`, `deleteApp`, `getApps`
+  - `src/app/dashboard/apps/page.tsx` — API Apps management page (table with create/rotate/deactivate/delete)
+  - `src/components/create-app-dialog.tsx` — create app + show credentials once
+  - `src/components/app-actions.tsx` — 3-dot menu (rotate secret, activate/deactivate, delete)
+  - Sidebar: "API Apps" under Security folder, route `/dashboard/apps` guarded by `apps` page permission
+  - `/developer` page: rewrote auth docs — Method A (app credentials, recommended) + Method B (user token)
+  - Added `/api/auth/token` to endpoint reference
+  - TypeScript clean (`tsc --noEmit` passes)
+  - **Pending**: run migration `npx supabase db push --linked`
+
+
 - **Bug Fix Session (18 Mar 26)** — resolved 7 issues from bug report PDF
   - Bug 1a: Removed star icon from "Current Tenant" section in header dropdown
   - Bug 1b: Toast now says "Default tenant updated to 'TenantName'" (includes name)

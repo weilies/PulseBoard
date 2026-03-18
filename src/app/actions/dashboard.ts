@@ -159,6 +159,23 @@ export async function updateUserRole(formData: FormData) {
   return { data };
 }
 
+export async function updateUserStatus(formData: FormData) {
+  const userId = formData.get("userId") as string;
+  const tenantId = formData.get("tenantId") as string;
+  const status = formData.get("status") as string;
+  if (!userId || !tenantId || !status) return { error: "All fields are required" };
+  if (!["active", "inactive", "suspended"].includes(status)) return { error: "Invalid status" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tenant_users")
+    .update({ status })
+    .eq("user_id", userId)
+    .eq("tenant_id", tenantId);
+  if (error) return { error: error.message };
+  return { data };
+}
+
 export async function removeUserFromTenant(formData: FormData) {
   const userId = formData.get("userId") as string;
   const tenantId = formData.get("tenantId") as string;

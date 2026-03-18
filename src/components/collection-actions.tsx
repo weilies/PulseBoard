@@ -252,7 +252,7 @@ export function CollectionActions({
           <DialogHeader>
             <DialogTitle className="text-red-400">Delete Collection</DialogTitle>
             <DialogDescription className="text-gray-500">
-              This will permanently delete <strong className="text-white">{collectionName}</strong>{" "}
+              This will permanently delete <strong className="text-gray-900">{collectionName}</strong>{" "}
               and all its fields and items. This cannot be undone.
             </DialogDescription>
           </DialogHeader>

@@ -158,7 +158,7 @@ export async function importItems(
     collectionSlug: string;
     rows: ImportRow[];
     fieldMapping: Record<string, string>;
-    userId: string;
+    userId: string | null;
     tenantId: string;
   }
 ) {

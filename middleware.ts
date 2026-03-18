@@ -6,6 +6,7 @@ import { PUBLIC_ROUTES, TENANT_COOKIE, LANG_COOKIE } from "@/lib/constants";
 const ROUTE_PAGE_MAP: Array<[string, string]> = [
   ["/dashboard/tenants", "tenants"],
   ["/dashboard/users", "users"],
+  ["/dashboard/apps", "apps"],
   ["/dashboard/roles", "roles"],
   ["/dashboard/nav", "roles"],
   ["/dashboard/studio/content-catalog", "studio.content-catalog"],
@@ -49,6 +50,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Check user has at least one active tenant membership
+  const { data: activeMembership } = await supabase
+    .from("tenant_users")
+    .select("id, status")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (!activeMembership) {
+    // User exists but has no active membership — sign them out and redirect
+    await supabase.auth.signOut();
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("error", "account_suspended");
+    return NextResponse.redirect(loginUrl);
+  }
+
   // Language preference: ensure pb-lang cookie is set
   if (!request.cookies.get(LANG_COOKIE)?.value) {
     response.cookies.set(LANG_COOKIE, "en", {
@@ -66,7 +84,7 @@ export async function middleware(request: NextRequest) {
       .from("tenant_users")
       .select("tenant_id, is_default")
       .eq("user_id", user.id)
-      .eq("is_active", true)
+      .eq("status", "active")
       .order("is_default", { ascending: false })
       .limit(5);
 

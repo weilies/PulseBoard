@@ -2,10 +2,16 @@ import { createClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
 import { checkRateLimit, rateLimitHeaders } from "./rate-limit";
+import { verifyAppToken } from "./jwt";
 
 export type ApiContext = {
-  userId: string;
+  /** User ID (Supabase auth.uid) — null for app-credential auth */
+  userId: string | null;
   tenantId: string;
+  /** App ID — set when authenticated via app credentials */
+  appId: string | null;
+  /** Auth mode — "user" (Supabase token) or "app" (app credentials JWT) */
+  authMode: "user" | "app";
   /** Admin client — RLS bypassed. Enforce tenant isolation in application code. */
   db: ReturnType<typeof createAdminClient>;
 };
@@ -13,7 +19,13 @@ export type ApiContext = {
 /**
  * Authenticate a REST API request.
  *
- * Expects:
+ * Supports two auth modes:
+ *
+ * **Mode A — App credentials (recommended for integrations):**
+ *   Authorization: Bearer <app-jwt>   (obtained from POST /api/auth/token)
+ *   No X-Tenant-Id needed — tenant is embedded in the JWT.
+ *
+ * **Mode B — Supabase user token (for user-facing apps):**
  *   Authorization: Bearer <supabase-access-token>
  *   X-Tenant-Id: <tenant-uuid>
  *
@@ -29,10 +41,37 @@ export async function resolveApiContext(request: NextRequest): Promise<
   }
 
   const token = authHeader.slice(7).trim();
-  const tenantId = request.headers.get("X-Tenant-Id");
 
+  // -------------------------------------------------------------------------
+  // Try Mode A: App credential JWT (issued by POST /api/auth/token)
+  // -------------------------------------------------------------------------
+  const appPayload = await verifyAppToken(token);
+  if (appPayload) {
+    // Rate-limit by app_id
+    const rl = checkRateLimit(`app:${appPayload.app_id}`);
+    if (!rl.ok) {
+      return fail(429, "Too many requests — slow down", rateLimitHeaders(rl.remaining, rl.resetAt));
+    }
+
+    const db = createAdminClient();
+    return {
+      ok: true,
+      ctx: {
+        userId: null,
+        tenantId: appPayload.tenant_id,
+        appId: appPayload.app_id,
+        authMode: "app",
+        db,
+      },
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // Mode B: Supabase user token (legacy / user-facing apps)
+  // -------------------------------------------------------------------------
+  const tenantId = request.headers.get("X-Tenant-Id");
   if (!tenantId) {
-    return fail(400, "Missing X-Tenant-Id header");
+    return fail(400, "Missing X-Tenant-Id header (required for user-token auth)");
   }
 
   // Rate-limit per token prefix (first 20 chars)
@@ -71,7 +110,7 @@ export async function resolveApiContext(request: NextRequest): Promise<
     return fail(403, "Access denied: you are not a member of this tenant");
   }
 
-  return { ok: true, ctx: { userId: user.id, tenantId, db } };
+  return { ok: true, ctx: { userId: user.id, tenantId, appId: null, authMode: "user", db } };
 }
 
 // ---------------------------------------------------------------------------

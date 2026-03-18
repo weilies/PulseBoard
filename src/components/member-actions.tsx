@@ -17,16 +17,22 @@ import { updateUserRole, removeUserFromTenant, deleteUser } from "@/app/actions/
 import { ROLES } from "@/lib/constants";
 import { UserDetailDialog } from "@/components/user-detail-dialog";
 
+interface RoleOption {
+  slug: string;
+  name: string;
+}
+
 interface MemberActionsProps {
   userId: string;
   tenantId: string;
   currentRole: string;
   fullName: string;
   email: string;
-  isActive: boolean;
+  status: string;
   isSuperAdmin?: boolean;
   isSuperTenant?: boolean;
   allTenants?: any[];
+  availableRoles: RoleOption[];
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -40,10 +46,11 @@ export function MemberActions({
   currentRole,
   fullName,
   email,
-  isActive,
+  status,
   isSuperAdmin,
   isSuperTenant,
   allTenants,
+  availableRoles,
 }: MemberActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -64,7 +71,7 @@ export function MemberActions({
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success(`Role updated to ${ROLE_LABELS[newRole]}`);
+      toast.success(`Role updated to ${ROLE_LABELS[newRole] || newRole}`);
     }
   }
 
@@ -109,6 +116,14 @@ export function MemberActions({
     }
   }
 
+  // Build role labels including custom roles
+  const allRoleLabels: Record<string, string> = { ...ROLE_LABELS };
+  for (const r of availableRoles) {
+    if (!allRoleLabels[r.slug]) {
+      allRoleLabels[r.slug] = r.name;
+    }
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -136,18 +151,16 @@ export function MemberActions({
                 Change Role
               </div>
             </DropdownMenuLabel>
-            {Object.entries(ROLE_LABELS)
-              .filter(([value]) => value !== ROLES.SUPER_ADMIN || isSuperTenant)
-              .map(([value, label]) => (
-                <DropdownMenuItem
-                  key={value}
-                  onClick={() => handleRoleChange(value)}
-                  className={`cursor-pointer hover:bg-gray-100 hover:text-blue-600 ${value === currentRole ? "bg-gray-100 text-blue-600 font-medium" : ""}`}
-                >
-                  {label}
-                  {value === currentRole && " (current)"}
-                </DropdownMenuItem>
-              ))}
+            {availableRoles.map(({ slug, name }) => (
+              <DropdownMenuItem
+                key={slug}
+                onClick={() => handleRoleChange(slug)}
+                className={`cursor-pointer hover:bg-gray-100 hover:text-blue-600 ${slug === currentRole ? "bg-gray-100 text-blue-600 font-medium" : ""}`}
+              >
+                {name}
+                {slug === currentRole && " (current)"}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuGroup>
           <DropdownMenuSeparator className="bg-blue-50" />
           <DropdownMenuGroup>
@@ -176,10 +189,11 @@ export function MemberActions({
         fullName={fullName}
         email={email}
         role={currentRole}
-        isActive={isActive}
+        status={status}
         isSuperAdmin={isSuperAdmin}
         allTenants={allTenants}
         tenantId={tenantId}
+        availableRoles={availableRoles}
       />
     </>
   );

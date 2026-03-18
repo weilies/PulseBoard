@@ -94,7 +94,8 @@ export default function DeveloperPage() {
           </h1>
           <p className="text-sm text-gray-500 max-w-2xl">
             {APP_NAME} exposes a REST API for reading and writing tenant-scoped collection data.
-            All requests are authenticated with a Supabase access token and scoped to a single tenant.
+            Two authentication methods are supported: <strong className="text-gray-900">App Credentials</strong> for
+            server-to-server integrations, and <strong className="text-gray-900">User Tokens</strong> for user-facing apps.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Badge color="cyan">Bearer Token Auth</Badge>
@@ -103,12 +104,59 @@ export default function DeveloperPage() {
           </div>
         </div>
 
-        {/* Step 1 */}
-        <Section title="Step 1 — Get an Access Token">
+        {/* Auth Method A — App Credentials (recommended) */}
+        <Section title="Auth Method A — App Credentials (Recommended)">
           <p className="text-sm text-gray-500">
-            Sign in with your {APP_NAME} credentials. The <code className="text-blue-600 font-mono text-xs">access_token</code> in the
-            response is your Bearer token — it expires after 1 hour.
+            Best for <strong className="text-gray-900">server-to-server integrations</strong>, cron jobs, ETL pipelines, and
+            any automated system. Tenant is embedded in the token — no <code className="text-blue-600 font-mono text-xs">X-Tenant-Id</code> header needed.
           </p>
+
+          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider pt-1">1. Create an App</p>
+          <div className="rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-500 space-y-1">
+            <p>
+              Go to <strong className="text-gray-900">Security → API Apps</strong> in the {APP_NAME} dashboard.
+              Click <strong className="text-gray-900">Create App</strong> and copy the <code className="text-blue-600 font-mono">app_id</code> and <code className="text-blue-600 font-mono">app_secret</code>.
+            </p>
+            <p className="text-yellow-600">
+              The secret is only shown once — store it securely.
+            </p>
+          </div>
+
+          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider pt-2">2. Exchange for a Token</p>
+          <Code>{`curl -X POST "$BASE/auth/token" \\
+  -H "Content-Type: application/json" \\
+  -d '{"app_id":"pb_app_a1b2c3d4e5f6g7h8","app_secret":"pb_sec_..."}'
+
+# Response:
+# { "access_token": "eyJ...", "token_type": "Bearer", "expires_in": 3600 }`}</Code>
+
+          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider pt-2">3. Use the Token</p>
+          <Code>{`TOKEN="eyJ..."   # access_token from step 2
+BASE="https://your-domain.com/api"
+
+# No X-Tenant-Id needed — tenant is embedded in the token
+curl "$BASE/collections?type=all" \\
+  -H "Authorization: Bearer $TOKEN"`}</Code>
+
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700 space-y-1">
+            <p><strong>Security benefits:</strong></p>
+            <ul className="list-disc list-inside space-y-0.5">
+              <li>Tenant ID is never exposed to integrators</li>
+              <li>Secrets can be rotated instantly via the dashboard</li>
+              <li>Apps can be deactivated or deleted to revoke access</li>
+              <li>Optional expiry date for time-limited integrations</li>
+            </ul>
+          </div>
+        </Section>
+
+        {/* Auth Method B — User Token */}
+        <Section title="Auth Method B — User Token">
+          <p className="text-sm text-gray-500">
+            Best for <strong className="text-gray-900">mobile apps, employee portals</strong>, and user-facing features
+            where individual identity and per-user permissions matter.
+          </p>
+
+          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider pt-1">1. Get an Access Token</p>
           <Code>{`curl -s -X POST "${SUPABASE_URL}/auth/v1/token?grant_type=password" \\
   -H "apikey: ${ANON_KEY}" \\
   -H "Content-Type: application/json" \\
@@ -120,37 +168,24 @@ export default function DeveloperPage() {
               <li><code className="text-blue-600 font-mono">&lt;project-ref&gt;</code> — your Supabase project reference ID</li>
               <li><code className="text-blue-600 font-mono">&lt;your-supabase-anon-key&gt;</code> — the <strong className="text-gray-900">anon / public</strong> key (not service_role)</li>
             </ul>
-            <p>Both are available in your Supabase dashboard under <strong className="text-gray-900">Project Settings → API</strong>. Contact your platform administrator if you don&apos;t have access.</p>
           </div>
-          <p className="text-xs text-gray-500">
-            Store it as a variable for reuse: <code className="text-blue-600 font-mono">TOKEN=&quot;&lt;paste here&gt;&quot;</code>
-          </p>
-        </Section>
 
-        {/* Step 2 */}
-        <Section title="Step 2 — Find Your Tenant ID">
-          <p className="text-sm text-gray-500">
-            Every request must include an <code className="text-blue-600 font-mono text-xs">X-Tenant-Id</code> header (UUID).
-            Your tenant IDs are visible in the {APP_NAME} dashboard under{" "}
-            <strong className="text-gray-900">Settings → Tenants</strong>.
-            Data from other tenants is never returned — the API enforces this server-side.
-          </p>
-          <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3 text-xs text-yellow-400">
-            ⚠ Tenant IDs are private identifiers. Do not share them publicly or embed them in
-            client-side code accessible to end users.
-          </div>
-        </Section>
-
-        {/* Step 3 */}
-        <Section title="Step 3 — Set Your Variables">
-          <Code>{`TOKEN="eyJ..."          # access_token from Step 1
+          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider pt-2">2. Set Your Variables</p>
+          <Code>{`TOKEN="eyJ..."          # access_token from step 1
 TENANT="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # your tenant UUID
-BASE="https://your-domain.com/api"             # or http://localhost:3000/api`}</Code>
+BASE="https://your-domain.com/api"
+
+# User tokens require X-Tenant-Id header
+curl "$BASE/collections?type=all" \\
+  -H "Authorization: Bearer $TOKEN" \\
+  -H "X-Tenant-Id: $TENANT"`}</Code>
         </Section>
 
         {/* Endpoint reference */}
         <Section title="Endpoint Reference">
           <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-0.5">
+            <EndpointRow method="POST"   path="/api/auth/token"                        desc="Exchange app credentials for JWT" />
+            <div className="border-b border-gray-200 my-1" />
             <EndpointRow method="GET"    path="/api/collections"                       desc="List collections" />
             <EndpointRow method="POST"   path="/api/collections"                       desc="Create collection" />
             <EndpointRow method="GET"    path="/api/collections/:slug"                 desc="Get schema + fields" />
@@ -177,19 +212,19 @@ BASE="https://your-domain.com/api"             # or http://localhost:3000/api`}<
             <div className="flex gap-4">
               <code className="w-56 shrink-0 text-xs font-mono text-blue-600">Authorization</code>
               <span className="text-xs text-gray-500">
-                <code className="text-gray-900">Bearer &lt;access_token&gt;</code> — from Step 1
+                <code className="text-gray-900">Bearer &lt;access_token&gt;</code> — from app credentials or user login
               </span>
             </div>
             <div className="flex gap-4">
               <code className="w-56 shrink-0 text-xs font-mono text-blue-600">X-Tenant-Id</code>
               <span className="text-xs text-gray-500">
-                <code className="text-gray-900">&lt;tenant-uuid&gt;</code> — your tenant UUID from Step 2
+                <code className="text-gray-900">&lt;tenant-uuid&gt;</code> — <strong className="text-gray-700">only required for user-token auth</strong> (not needed with app credentials)
               </span>
             </div>
             <div className="flex gap-4">
               <code className="w-56 shrink-0 text-xs font-mono text-blue-600">Content-Type</code>
               <span className="text-xs text-gray-500">
-                <code className="text-gray-900">application/json</code> — required for POST / PUT
+                <code className="text-gray-900">application/json</code> — required for POST / PUT / PATCH
               </span>
             </div>
           </div>
@@ -422,18 +457,17 @@ X-RateLimit-Reset:     1710000000   # Unix timestamp`}</Code>
         <Section title="Privacy & Tenant Isolation">
           <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4 text-xs text-gray-500 space-y-2">
             <p>
-              All tenant collection data is strictly isolated. A valid token with{" "}
-              <code className="text-purple-400 font-mono">X-Tenant-Id: A</code> will never return data
-              belonging to Tenant B — even if the resource ID is guessed correctly.
+              All tenant collection data is strictly isolated. A valid token will never return data
+              belonging to another tenant — even if the resource ID is guessed correctly.
             </p>
             <p>
               System collections (maintained by the platform) are read-accessible to all authenticated tenants.
               Write access to system collections requires super-admin role.
             </p>
-            <p className="text-yellow-400/80">
-              Keep your <code className="font-mono">access_token</code> and <code className="font-mono">tenant UUID</code> confidential.
-              Tokens expire after 1 hour. Refresh using the Supabase Auth{" "}
-              <code className="font-mono">refresh_token</code> grant.
+            <p className="text-yellow-600">
+              Keep your <code className="font-mono">app_secret</code> and <code className="font-mono">access_token</code> confidential.
+              Tokens expire after 1 hour. If an app secret is compromised, rotate it immediately
+              from <strong>Security → API Apps</strong>.
             </p>
           </div>
         </Section>

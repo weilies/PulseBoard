@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Building2, FlaskConical, Database,
   BookOpen, Layers, ChevronDown, Shield, FileKey, Folder, FolderOpen,
-  Boxes, Box, Map, Lock,
+  Boxes, Box, Map, Lock, KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NavFolder, NavItem } from "@/lib/services/nav.service";
@@ -24,6 +24,7 @@ const PAGE_CONFIG: Record<string, { href: string; label: string; Icon: React.Com
   "studio.tenant-collections":   { href: "/dashboard/studio/tenant-collections",     label: "Tenant Collections",  Icon: Layers },
   "roles":                       { href: "/dashboard/roles",                         label: "Roles",               Icon: Shield },
   "policies":                    { href: "/dashboard/policies",                      label: "Policies",            Icon: FileKey },
+  "apps":                        { href: "/dashboard/apps",                          label: "API Apps",            Icon: KeyRound },
 };
 
 const STUDIO_PAGES = ["studio.system-collections", "studio.content-catalog", "studio.tenant-collections"];
@@ -226,12 +227,13 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
   // Studio sub-pages
   const visibleStudioPages = STUDIO_PAGES.filter((p) => pageSet.has(p));
 
-  // Security folder: visible if user has Users or Roles access
-  const hasSecurityAccess = pageSet.has("users") || pageSet.has("roles");
+  // Security folder: visible if user has Users, Roles, or Apps access
+  const hasSecurityAccess = pageSet.has("users") || pageSet.has("roles") || pageSet.has("apps");
   const securityActive =
     pathname.startsWith("/dashboard/users") ||
     pathname.startsWith("/dashboard/roles") ||
-    pathname.startsWith("/dashboard/policies");
+    pathname.startsWith("/dashboard/policies") ||
+    pathname.startsWith("/dashboard/apps");
   const [securityOpen, setSecurityOpen] = useState(securityActive);
 
   const studioActive = pathname.startsWith("/dashboard/studio");
@@ -313,6 +315,9 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
                     <SubNavLink href="/dashboard/roles" icon={Shield} label="Roles" pathname={pathname} onNavigate={onNavigate} />
                     <SubNavLink href="/dashboard/policies" icon={FileKey} label="Policies" pathname={pathname} onNavigate={onNavigate} />
                   </>
+                )}
+                {pageSet.has("apps") && (
+                  <SubNavLink href="/dashboard/apps" icon={KeyRound} label="API Apps" pathname={pathname} onNavigate={onNavigate} />
                 )}
               </div>
             )}
