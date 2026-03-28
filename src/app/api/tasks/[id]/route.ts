@@ -36,9 +36,11 @@ export async function PATCH(
   if (fetchErr) return apiErr(fetchErr.message, 500);
   if (!existing) return apiErr("Task not found", 404);
 
-  // User-auth callers can only update their own tasks or broadcast tasks.
+  // User-auth callers can only update their own tasks.
+  // Broadcast tasks (user_id IS NULL) are immutable to individual users — they are
+  // shared rows and per-user read state is not tracked at row level in v1.
   // App-credential callers (e.g. rule engine) can update any task in their tenant.
-  if (authMode === "user" && existing.user_id !== null && existing.user_id !== userId)
+  if (authMode === "user" && existing.user_id !== userId)
     return apiErr("Forbidden", 403);
 
   const updates: Record<string, unknown> = { status };

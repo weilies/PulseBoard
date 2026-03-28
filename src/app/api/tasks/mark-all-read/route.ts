@@ -14,11 +14,13 @@ export async function POST(request: NextRequest) {
 
   const now = new Date().toISOString();
 
+  // Only update user-targeted tasks. Broadcast tasks (user_id IS NULL) are not
+  // mutated per-user — they can only be managed via service-role.
   const { error } = await db
     .from("tasks")
     .update({ status: "read", read_at: now })
     .eq("tenant_id", tenantId)
-    .or(`user_id.eq.${userId},user_id.is.null`)
+    .eq("user_id", userId)
     .eq("status", "unread");
 
   if (error) return apiErr(error.message, 500);

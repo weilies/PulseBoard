@@ -12,7 +12,6 @@ import { Suspense } from "react";
 const gridConfig: GridConfig = {
   sortable: [
     { field: "created_at", defaultDir: "desc" },
-    { field: "title", defaultDir: "asc" },
   ],
   filterable: [],
 };
