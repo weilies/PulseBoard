@@ -23,6 +23,7 @@ import {
 import { Building2, Clock, LogOut, Menu, Star } from "lucide-react";
 import { TENANT_COOKIE } from "@/lib/constants";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AvatarUpload } from "@/components/avatar-upload";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -117,10 +118,11 @@ export function Header({
  </span>
  </div>
 
- {/* Right: theme toggle + language switcher + avatar dropdown */}
+ {/* Right: theme toggle + language switcher + bell + avatar dropdown */}
  <div className="flex items-center gap-1">
  <ThemeToggle />
  <LanguageSwitcher />
+ {currentTenantId && <NotificationBell tenantId={currentTenantId} />}
  <DropdownMenu>
  <DropdownMenuTrigger render={<Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-800" />}>
  <Avatar className="h-8 w-8 bg-gradient-to-br from-blue-500 to-indigo-500">
