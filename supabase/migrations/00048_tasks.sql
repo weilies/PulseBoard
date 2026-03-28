@@ -39,6 +39,8 @@ CREATE POLICY "tasks_insert" ON public.tasks
   FOR INSERT WITH CHECK (false);
 
 -- UPDATE: user can update their own tasks only
+-- NOTE: broadcast tasks (user_id IS NULL) are intentionally immutable to client users.
+-- Only service-role can update them (it bypasses RLS). This is by design.
 CREATE POLICY "tasks_update" ON public.tasks
   FOR UPDATE USING (
     user_id = auth.uid()
