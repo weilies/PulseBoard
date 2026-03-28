@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
 
   const sp = request.nextUrl.searchParams;
   const status = sp.get("status") ?? null;
+  const VALID_STATUSES = ["unread", "read", "done"];
+  if (status && !VALID_STATUSES.includes(status))
+    return apiErr("status must be one of: unread, read, done");
   const limit = Math.min(100, Math.max(1, Number(sp.get("limit") ?? 20)));
   const offset = Math.max(0, Number(sp.get("offset") ?? 0));
 
@@ -81,13 +84,18 @@ export async function POST(request: NextRequest) {
   try { body = await request.json(); }
   catch { return apiErr("Invalid JSON body"); }
 
+  // Cross-tenant writes are intentional for app-credential callers (e.g. rule engine, system events).
+  // tenantId from auth context is the default; body.tenant_id allows targeting a specific tenant.
   const taskTenantId = (body.tenant_id as string | undefined) ?? tenantId;
   const type = body.type as string | undefined;
   const title = (body.title as string | undefined)?.trim();
+  const priority = (body.priority as string | undefined) ?? "normal";
 
   if (!type || !["notification","approval","reminder","alert"].includes(type))
     return apiErr("type must be one of: notification, approval, reminder, alert");
   if (!title) return apiErr("title is required");
+  if (!["low", "normal", "high"].includes(priority))
+    return apiErr("priority must be one of: low, normal, high");
 
   const { data: task, error } = await db
     .from("tasks")
@@ -100,7 +108,7 @@ export async function POST(request: NextRequest) {
       action_url:   (body.action_url as string | undefined) ?? null,
       action_label: (body.action_label as string | undefined) ?? null,
       status:       "unread",
-      priority:     (body.priority as string | undefined) ?? "normal",
+      priority,
       source:       (body.source as string | undefined) ?? null,
       source_id:    (body.source_id as string | undefined) ?? null,
     })
