@@ -79,7 +79,7 @@ export default async function RulesPage({
       {/* Back nav */}
       <Link
         href={isSystem ? "/dashboard/studio/system-collections" : "/dashboard/studio/tenant-collections"}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {isSystem ? "Back to System Collections" : "Back to Tenant Collections"}
@@ -87,32 +87,32 @@ export default async function RulesPage({
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="rounded-md border border-gray-300 bg-gray-100 p-2">
-          <CollIcon className="h-4 w-4 text-blue-600" />
+        <div className="rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 p-2">
+          <CollIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-gray-900" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
               {collection.name}
             </h1>
             <Badge
               variant="outline"
-              className={isSystem ? "border-blue-500/40 text-blue-600 text-xs" : "border-violet-500/40 text-violet-400 text-xs"}
+              className={isSystem ? "border-blue-500/40 text-blue-600 dark:text-blue-400 text-xs" : "border-violet-500/40 text-violet-400 text-xs"}
             >
               {isSystem ? "System" : "Tenant"}
             </Badge>
           </div>
-          <code className="text-xs text-gray-500 font-mono">{collection.slug}</code>
+          <code className="text-xs text-gray-500 dark:text-gray-400 font-mono">{collection.slug}</code>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-0 border-b border-gray-200">
-        <Link href={`/dashboard/studio/collections/${collection.slug}/schema`} className="px-4 py-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">Schema</Link>
-        <Link href={`/dashboard/studio/collections/${collection.slug}/items`} className="px-4 py-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">Items</Link>
-        <Link href={`/dashboard/studio/collections/${collection.slug}/settings`} className="px-4 py-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">Settings</Link>
-        <Link href={`/dashboard/studio/collections/${collection.slug}/form`} className="px-4 py-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">Layout</Link>
-        <Link href={`/dashboard/studio/collections/${collection.slug}/rules`} className="px-4 py-2 text-sm text-blue-600 border-b-2 border-blue-400 font-medium">Rules</Link>
+      <div className="flex gap-0 border-b border-gray-200 dark:border-gray-700">
+        <Link href={`/dashboard/studio/collections/${collection.slug}/schema`} className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Schema</Link>
+        <Link href={`/dashboard/studio/collections/${collection.slug}/items`} className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Items</Link>
+        <Link href={`/dashboard/studio/collections/${collection.slug}/settings`} className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Settings</Link>
+        <Link href={`/dashboard/studio/collections/${collection.slug}/form`} className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Layout</Link>
+        <Link href={`/dashboard/studio/collections/${collection.slug}/rules`} className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 border-b-2 border-blue-400 font-medium">Rules</Link>
       </div>
 
       {/* Rules content */}
