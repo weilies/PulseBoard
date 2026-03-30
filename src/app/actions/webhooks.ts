@@ -161,6 +161,44 @@ export async function getActivityLogs(limit = 100, filters?: {
     }
   }
 
+  // ── user_mgmt_audit ───────────────────────────────────────────────────────
+  if (!filters?.category || filters.category === "audit") {
+    if (!filters?.status || filters.status === "success") {
+      let q = supabase
+        .from("user_mgmt_audit")
+        .select("id, tenant_id, actor_id, target_type, target_id, target_label, action, old_data, new_data, status, created_at")
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (filters?.event_type) q = q.eq("action", filters.event_type);
+      if (fromDt) q = q.gte("created_at", fromDt);
+      if (toDt)   q = q.lte("created_at", toDt);
+
+      const { data: mgmtRows } = await q;
+
+      for (const row of mgmtRows ?? []) {
+        results.push({
+          id:              row.id,
+          created_at:      row.created_at,
+          category:        "audit",
+          event_type:      row.action,
+          status:          row.status,
+          request_url:     null,
+          request_body:    row.new_data ?? null,
+          response_status: null,
+          response_body:   null,
+          duration_ms:     null,
+          scope_id:        row.target_label ?? null,
+          old_data:        row.old_data ?? null,
+          new_data:        row.new_data ?? null,
+          item_id:         row.target_id ?? null,
+          actor_id:        row.actor_id ?? null,
+        });
+      }
+    }
+  }
+
   // Sort merged results
   results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
