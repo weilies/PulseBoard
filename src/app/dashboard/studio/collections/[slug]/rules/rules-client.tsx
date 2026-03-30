@@ -142,9 +142,9 @@ function AddRuleDialog({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700">
         <DialogHeader>
-          <DialogTitle className="text-gray-900">
+          <DialogTitle className="text-gray-100 dark:text-gray-100">
             {ruleType === "validation" ? "Add Validation Rule" : "Add Derivation Rule"}
           </DialogTitle>
         </DialogHeader>
@@ -152,24 +152,24 @@ function AddRuleDialog({
         <div className="space-y-4 py-2 text-sm">
           {/* Name */}
           <div className="space-y-1.5">
-            <Label className="text-gray-700">Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Salary cap for IT" className="border-gray-200" />
+            <Label className="text-gray-300 dark:text-gray-300">Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Salary cap for IT" className="border-gray-600 dark:border-gray-600 bg-gray-800 dark:bg-gray-800 text-gray-100 dark:text-gray-100 placeholder:text-gray-500" />
           </div>
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label className="text-gray-700">Description <span className="text-gray-400">(optional)</span></Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional explanation" className="border-gray-200" />
+            <Label className="text-gray-300 dark:text-gray-300">Description <span className="text-gray-500 dark:text-gray-500">(optional)</span></Label>
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional explanation" className="border-gray-600 dark:border-gray-600 bg-gray-800 dark:bg-gray-800 text-gray-100 dark:text-gray-100 placeholder:text-gray-500" />
           </div>
 
           {/* Conditions */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-gray-700">Conditions <span className="text-gray-400">(empty = always fires)</span></Label>
+              <Label className="text-gray-300 dark:text-gray-300">Conditions <span className="text-gray-500 dark:text-gray-500">(empty = always fires)</span></Label>
               {conditions.length > 1 && (
                 <Select value={condLogic} onValueChange={(v) => setCondLogic(v as "AND" | "OR")}>
-                  <SelectTrigger className="h-7 w-20 text-xs border-gray-200"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="h-7 w-20 text-xs border-gray-600 dark:border-gray-600 bg-gray-800 dark:bg-gray-800 text-gray-100"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 dark:bg-gray-800 border-gray-600">
                     <SelectItem value="AND">AND</SelectItem>
                     <SelectItem value="OR">OR</SelectItem>
                   </SelectContent>
@@ -179,76 +179,76 @@ function AddRuleDialog({
             {conditions.map((cond, i) => (
               <div key={i} className="flex items-center gap-2">
                 <Select value={cond.field ?? ""} onValueChange={(v) => updateCondition(i, "field", v)}>
-                  <SelectTrigger className="h-8 flex-1 text-xs border-gray-200"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="h-8 flex-1 text-xs border-gray-600 dark:border-gray-600 bg-gray-800 dark:bg-gray-800 text-gray-100"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 dark:bg-gray-800 border-gray-600">
                     {fields.map((f) => <SelectItem key={f.slug} value={f.slug}>{f.name}</SelectItem>)}
                     <SelectItem value="parent.id">parent.id</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={cond.op} onValueChange={(v) => updateCondition(i, "op", v)}>
-                  <SelectTrigger className="h-8 w-28 text-xs border-gray-200"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="h-8 w-28 text-xs border-gray-600 dark:border-gray-600 bg-gray-800 dark:bg-gray-800 text-gray-100"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 dark:bg-gray-800 border-gray-600">
                     {OPS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Input value={cond.value} onChange={(e) => updateCondition(i, "value", e.target.value)} placeholder="value" className="h-8 flex-1 text-xs border-gray-200" />
-                <button onClick={() => removeCondition(i)} className="text-gray-400 hover:text-red-500 transition-colors">
+                <Input value={cond.value} onChange={(e) => updateCondition(i, "value", e.target.value)} placeholder="value" className="h-8 flex-1 text-xs border-gray-600 dark:border-gray-600 bg-gray-800 dark:bg-gray-800 text-gray-100 placeholder:text-gray-500" />
+                <button onClick={() => removeCondition(i)} className="text-gray-500 dark:text-gray-500 hover:text-red-500 transition-colors">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             ))}
-            <button onClick={addCondition} className="text-xs text-blue-600 hover:text-blue-700 transition-colors">
+            <button onClick={addCondition} className="text-xs text-blue-400 dark:text-blue-400 hover:text-blue-300 transition-colors">
               + Add condition
             </button>
           </div>
 
           {/* Action */}
           {ruleType === "validation" ? (
-            <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Validation Action</p>
+            <div className="space-y-2 rounded-lg border border-gray-700 dark:border-gray-700 bg-gray-800 dark:bg-gray-800 p-3">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wider">Validation Action</p>
               <div className="flex items-center gap-2">
                 <Select value={validField} onValueChange={(v) => setValidField(v ?? "")}>
-                  <SelectTrigger className="h-8 flex-1 text-xs border-gray-200"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="h-8 flex-1 text-xs border-gray-600 dark:border-gray-600 bg-gray-700 dark:bg-gray-700 text-gray-100"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 dark:bg-gray-800 border-gray-600">
                     {fields.map((f) => <SelectItem key={f.slug} value={f.slug}>{f.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Select value={validOp} onValueChange={(v) => setValidOp(v ?? "")}>
-                  <SelectTrigger className="h-8 w-28 text-xs border-gray-200"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="h-8 w-28 text-xs border-gray-600 dark:border-gray-600 bg-gray-700 dark:bg-gray-700 text-gray-100"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 dark:bg-gray-800 border-gray-600">
                     {OPS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Input value={validValue} onChange={(e) => setValidValue(e.target.value)} placeholder="value" className="h-8 flex-1 text-xs border-gray-200" />
+                <Input value={validValue} onChange={(e) => setValidValue(e.target.value)} placeholder="value" className="h-8 flex-1 text-xs border-gray-600 dark:border-gray-600 bg-gray-700 dark:bg-gray-700 text-gray-100 placeholder:text-gray-500" />
               </div>
-              <Input value={validMsg} onChange={(e) => setValidMsg(e.target.value)} placeholder="Error message shown to user" className="text-xs border-gray-200" />
+              <Input value={validMsg} onChange={(e) => setValidMsg(e.target.value)} placeholder="Error message shown to user" className="text-xs border-gray-600 dark:border-gray-600 bg-gray-700 dark:bg-gray-700 text-gray-100 placeholder:text-gray-500" />
             </div>
           ) : (
-            <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Derivation Action</p>
+            <div className="space-y-2 rounded-lg border border-gray-700 dark:border-gray-700 bg-gray-800 dark:bg-gray-800 p-3">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wider">Derivation Action</p>
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-600">Target field (will be set to formula result)</Label>
+                <Label className="text-xs text-gray-400 dark:text-gray-400">Target field (will be set to formula result)</Label>
                 <Select value={targetField} onValueChange={(v) => setTargetField(v ?? "")}>
-                  <SelectTrigger className="h-8 text-xs border-gray-200"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="h-8 text-xs border-gray-600 dark:border-gray-600 bg-gray-700 dark:bg-gray-700 text-gray-100"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 dark:bg-gray-800 border-gray-600">
                     {fields.map((f) => <SelectItem key={f.slug} value={f.slug}>{f.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-600">Formula</Label>
-                <Input value={formula} onChange={(e) => setFormula(e.target.value)} placeholder="e.g. salary * 0.10  or  IF(department = &quot;IT&quot;, salary * 0.12, salary * 0.08)" className="text-xs font-mono border-gray-200" />
-                <p className="text-xs text-gray-400">Supports: +−×÷, field names, IF(cond, then, else), ROUND(x, n), MIN(a,b), MAX(a,b)</p>
+                <Label className="text-xs text-gray-400 dark:text-gray-400">Formula</Label>
+                <Input value={formula} onChange={(e) => setFormula(e.target.value)} placeholder="e.g. salary * 0.10  or  IF(department = &quot;IT&quot;, salary * 0.12, salary * 0.08)" className="text-xs font-mono border-gray-600 dark:border-gray-600 bg-gray-700 dark:bg-gray-700 text-gray-100 placeholder:text-gray-500" />
+                <p className="text-xs text-gray-500 dark:text-gray-500">Supports: +−×÷, field names, IF(cond, then, else), ROUND(x, n), MIN(a,b), MAX(a,b)</p>
               </div>
             </div>
           )}
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-red-400 dark:text-red-400">{error}</p>}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-gray-200 text-gray-600">Cancel</Button>
-          <Button onClick={handleSave} disabled={isPending} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button variant="outline" onClick={onClose} className="border-gray-600 dark:border-gray-600 text-gray-300 dark:text-gray-300 hover:bg-gray-800">Cancel</Button>
+          <Button onClick={handleSave} disabled={isPending} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700">
             {isPending ? "Saving…" : "Save Rule"}
           </Button>
         </DialogFooter>
@@ -300,14 +300,14 @@ function RuleRow({
   }
 
   return (
-    <div className={`flex items-start gap-3 rounded-lg border p-3 transition-opacity ${rule.is_active ? "border-gray-200 bg-white" : "border-gray-100 bg-gray-50 opacity-60"}`}>
+    <div className={`flex items-start gap-3 rounded-lg border p-3 transition-opacity ${rule.is_active ? "border-gray-700 dark:border-gray-700 bg-gray-900 dark:bg-gray-900" : "border-gray-800 dark:border-gray-800 bg-gray-800 dark:bg-gray-800 opacity-60"}`}>
       {/* Priority controls */}
       {!isPlatform && (
         <div className="flex flex-col gap-0.5 pt-0.5">
-          <button onClick={() => onMoved(rule.id, "up")} className="text-gray-300 hover:text-gray-500 transition-colors">
+          <button onClick={() => onMoved(rule.id, "up")} className="text-gray-600 dark:text-gray-600 hover:text-gray-400 transition-colors">
             <ChevronUp className="h-3.5 w-3.5" />
           </button>
-          <button onClick={() => onMoved(rule.id, "down")} className="text-gray-300 hover:text-gray-500 transition-colors">
+          <button onClick={() => onMoved(rule.id, "down")} className="text-gray-600 dark:text-gray-600 hover:text-gray-400 transition-colors">
             <ChevronDown className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -321,17 +321,17 @@ function RuleRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-gray-900">{rule.name}</span>
+          <span className="text-sm font-medium text-gray-100 dark:text-gray-100">{rule.name}</span>
           {isPlatform && (
-            <span className="flex items-center gap-1 text-xs text-gray-400">
+            <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-500">
               <Lock className="h-3 w-3" /> Platform
             </span>
           )}
-          {!rule.is_active && <span className="text-xs text-gray-400 italic">disabled</span>}
+          {!rule.is_active && <span className="text-xs text-gray-500 dark:text-gray-500 italic">disabled</span>}
         </div>
-        {rule.description && <p className="text-xs text-gray-500 mt-0.5">{rule.description}</p>}
+        {rule.description && <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5">{rule.description}</p>}
         {/* Action summary */}
-        <div className="mt-1 text-xs text-gray-400 font-mono">
+        <div className="mt-1 text-xs text-gray-500 dark:text-gray-500 font-mono">
           {isValidation
             ? `if (${String(actions.field ?? "?")} ${String(actions.op ?? "?")} ${String(actions.value ?? "?")}) → error: "${String(actions.message ?? "")}"`
             : `${String(actions.target_field ?? "?")} = ${String(actions.formula ?? "")}`
@@ -346,7 +346,7 @@ function RuleRow({
             onClick={handleToggle}
             disabled={isPending}
             title={rule.is_active ? "Disable" : "Enable"}
-            className="text-gray-300 hover:text-blue-500 transition-colors disabled:opacity-50"
+            className="text-gray-600 dark:text-gray-600 hover:text-blue-400 transition-colors disabled:opacity-50"
           >
             <CheckCircle2 className={`h-4 w-4 ${rule.is_active ? "text-emerald-500" : ""}`} />
           </button>
@@ -354,7 +354,7 @@ function RuleRow({
             onClick={handleDelete}
             disabled={isPending}
             title="Delete rule"
-            className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50"
+            className="text-gray-600 dark:text-gray-600 hover:text-red-500 transition-colors disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -415,7 +415,7 @@ export function RulesClient({ collectionSlug, collectionId: _collectionId, rules
   return (
     <div className="space-y-4">
       {/* Sub-tabs */}
-      <div className="flex gap-0 border-b border-gray-200">
+      <div className="flex gap-0 border-b border-gray-700 dark:border-gray-700">
         {(["validation", "derivation"] as const).map((t) => {
           const count = rules.filter((r) => r.rule_type === t).length;
           return (
@@ -424,14 +424,14 @@ export function RulesClient({ collectionSlug, collectionId: _collectionId, rules
               onClick={() => setActiveTab(t)}
               className={`px-4 py-2 text-sm flex items-center gap-1.5 transition-colors ${
                 activeTab === t
-                  ? "text-blue-600 border-b-2 border-blue-400 font-medium"
-                  : "text-gray-500 hover:text-blue-600"
+                  ? "text-blue-400 dark:text-blue-400 border-b-2 border-blue-400 dark:border-blue-400 font-medium"
+                  : "text-gray-500 dark:text-gray-500 hover:text-blue-400"
               }`}
             >
               {t === "validation" ? <AlertCircle className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
               {t.charAt(0).toUpperCase() + t.slice(1)}s
               {count > 0 && (
-                <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">{count}</span>
+                <span className="rounded-full bg-gray-800 dark:bg-gray-800 px-1.5 py-0.5 text-xs text-gray-400 dark:text-gray-400">{count}</span>
               )}
             </button>
           );
@@ -440,7 +440,7 @@ export function RulesClient({ collectionSlug, collectionId: _collectionId, rules
           <Button
             size="sm"
             onClick={() => setAddDialogType(activeTab)}
-            className="h-7 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+            className="h-7 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs dark:bg-blue-600 dark:hover:bg-blue-700"
           >
             <Plus className="h-3.5 w-3.5" />
             Add {activeTab === "validation" ? "Validation" : "Derivation"}
@@ -451,7 +451,7 @@ export function RulesClient({ collectionSlug, collectionId: _collectionId, rules
       {/* Platform rules */}
       {platformRules.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
             <Lock className="h-3 w-3" /> Platform Rules
           </p>
           {platformRules.map((rule) => (
@@ -471,18 +471,18 @@ export function RulesClient({ collectionSlug, collectionId: _collectionId, rules
       {/* Tenant rules */}
       <div className="space-y-2">
         {(platformRules.length > 0 || tenantRules.length > 0) && (
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">
             {isSuperAdmin ? "All Tenant Rules" : "Your Rules"}
           </p>
         )}
         {tenantRules.length === 0 && platformRules.length === 0 && (
-          <div className="text-center text-gray-500 py-12 rounded-lg border border-gray-200 bg-gray-50">
+          <div className="text-center text-gray-500 dark:text-gray-500 py-12 rounded-lg border border-gray-700 dark:border-gray-700 bg-gray-800 dark:bg-gray-800">
             {activeTab === "validation"
-              ? <AlertCircle className="h-6 w-6 text-gray-300 mx-auto mb-2" />
-              : <Zap className="h-6 w-6 text-gray-300 mx-auto mb-2" />
+              ? <AlertCircle className="h-6 w-6 text-gray-600 dark:text-gray-600 mx-auto mb-2" />
+              : <Zap className="h-6 w-6 text-gray-600 dark:text-gray-600 mx-auto mb-2" />
             }
             <p className="text-sm">No {activeTab} rules yet.</p>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
               {activeTab === "validation"
                 ? "Add rules to enforce field constraints on every save."
                 : "Add rules to compute field values automatically on every save."}
@@ -504,7 +504,7 @@ export function RulesClient({ collectionSlug, collectionId: _collectionId, rules
 
       {/* Execution order note */}
       {rules.length > 0 && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500 dark:text-gray-500">
           Execution order: derivations run first (sets computed values), then validations (check those values).
           Within each group: platform rules → tenant rules, sorted by priority.
         </p>
