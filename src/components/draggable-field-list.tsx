@@ -249,7 +249,7 @@ function DraggableFieldRow({
           fieldIsRequired={field.is_required}
           fieldIsUnique={field.is_unique}
           fieldIsTranslatable={field.is_translatable}
-          sortOrder={field.sort_order}
+          sortOrder={index + 1}
           collectionId={collectionId}
           collectionSlug={collectionSlug}
           isFirst={index === 0}
