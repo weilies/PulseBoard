@@ -25,4 +25,6 @@ export const SUPPORTED_LANGUAGES = [
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"];
 
-export const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/developer"];
+export const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/developer", "/forgot-password", "/reset-password"];
+
+export const AUTH_FLOW_RECOVERY = "recovery";

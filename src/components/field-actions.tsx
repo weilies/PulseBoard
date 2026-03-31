@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Trash2, ChevronUp, ChevronDown, Globe, Settings2, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { deleteField, moveField, toggleFieldShowInGrid } from "@/app/actions/studio";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { EditFieldLabelsDialog } from "@/components/edit-field-labels-dialog";
 import { EditFieldDialog } from "@/components/edit-field-dialog";
 
@@ -201,34 +202,27 @@ export function FieldActions({
 
  {/* Delete confirm */}
  <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
- <DialogContent className="bg-white dark:bg-gray-900 border border-red-500/30 text-gray-900 dark:text-gray-100">
+ <DialogContent className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
  <DialogHeader>
- <DialogTitle className="text-red-400">Delete Field</DialogTitle>
- <DialogDescription className="text-gray-500 dark:text-gray-400">
- Delete <strong className="text-white">{fieldName}</strong>?{""}
- All item data stored in this field will be lost. If this is an M2M relation,
- the junction collection will also be deleted.
- </DialogDescription>
+ <DialogTitle>Delete Field</DialogTitle>
  </DialogHeader>
- <DialogFooter className="mt-4">
- <DialogClose
- render={
- <Button
- type="button"
- variant="outline"
- className="border-zinc-600 text-gray-500 dark:text-gray-400 hover:bg-zinc-700"
+
+ <ConfirmActionDialog
+ isOpen={deleteOpen}
+ severity="danger"
+ message={`Delete "${fieldName}"? All item data stored in this field will be lost. If this is an M2M relation, the junction collection will also be deleted.`}
+ confirmLabel="Delete"
+ cancelLabel="Cancel"
+ confirmVariant="destructive"
+ onConfirm={handleDelete}
+ onCancel={() => setDeleteOpen(false)}
+ isLoading={loading}
  />
- }
- >
- Cancel
+
+ <DialogFooter className="mt-4">
+ <DialogClose render={<Button type="button" variant="outline" />}>
+ Close
  </DialogClose>
- <Button
- onClick={handleDelete}
- disabled={loading}
- className="bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/200/30"
- >
- {loading ? "Deleting..." : "Delete"}
- </Button>
  </DialogFooter>
  </DialogContent>
  </Dialog>

@@ -7,14 +7,14 @@ import {
  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
- Dialog, DialogClose, DialogContent, DialogDescription,
- DialogFooter, DialogHeader, DialogTitle,
+ Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Pencil, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { deleteCatalogItem, moveCatalogItem } from "@/app/actions/content-catalog";
 import { EditCatalogItemDialog } from "@/components/create-catalog-item-dialog";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 interface Props {
  item: { id: string; label: string; value: string; sort_order: number; is_active: boolean };
@@ -98,20 +98,22 @@ export function CatalogItemActions({ item, catalogId, catalogSlug, isFirst, isLa
  />
 
  <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
- <DialogContent className="bg-white dark:bg-gray-900 border border-red-500/30 text-gray-900 dark:text-gray-100">
+ <DialogContent className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
  <DialogHeader>
- <DialogTitle className="text-red-400">Delete Item</DialogTitle>
- <DialogDescription className="text-gray-500 dark:text-gray-400">
- Delete <strong className="text-white">{item.label}</strong>? This cannot be undone.
- </DialogDescription>
+ <DialogTitle>Delete Item</DialogTitle>
  </DialogHeader>
- <DialogFooter className="mt-4">
- <DialogClose render={<Button type="button" variant="outline" className="border-zinc-600 text-gray-500 dark:text-gray-400 hover:bg-zinc-700" />}>Cancel</DialogClose>
- <Button onClick={handleDelete} disabled={loading}
- className="bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/200/30">
- {loading ? "Deleting..." : "Delete"}
- </Button>
- </DialogFooter>
+
+ <ConfirmActionDialog
+ isOpen={deleteOpen}
+ severity="danger"
+ message={`Delete "${item.label}"? This cannot be undone.`}
+ confirmLabel="Delete"
+ cancelLabel="Cancel"
+ confirmVariant="destructive"
+ onConfirm={handleDelete}
+ onCancel={() => setDeleteOpen(false)}
+ isLoading={loading}
+ />
  </DialogContent>
  </Dialog>
  </>

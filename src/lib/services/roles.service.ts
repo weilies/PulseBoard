@@ -136,7 +136,7 @@ export async function getPolicies(supabase: SupabaseClient, tenantId: string) {
       id, name, description, is_system,
       policy_permissions(resource_type, resource_id, permissions)
     `)
-    .eq("tenant_id", tenantId)
+    .or(`is_system.eq.true,tenant_id.eq.${tenantId}`)
     .order("is_system", { ascending: false })
     .order("name");
   if (error) return { error: error.message };

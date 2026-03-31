@@ -71,17 +71,14 @@ export default async function ItemDetailPage({
     (a, b) => a.sort_order - b.sort_order
   );
 
-  // Fetch the item
+  // Fetch the item — always scope to current tenant (system collections share schema, data is per-tenant)
   const isSystem = collection.type === "system";
-  let itemQuery = supabase
+  const itemQuery = supabase
     .from("collection_items")
     .select("id, data, created_at, updated_at")
     .eq("id", id)
-    .eq("collection_id", collection.id);
-
-  if (!isSystem) {
-    itemQuery = itemQuery.eq("tenant_id", tenantId);
-  }
+    .eq("collection_id", collection.id)
+    .eq("tenant_id", tenantId);
 
   const { data: item } = (await itemQuery.maybeSingle()) as { data: Item | null };
   if (!item) notFound();
@@ -174,7 +171,21 @@ export default async function ItemDetailPage({
   const cookieStore = await cookies();
   const currentLocale = cookieStore.get(LANG_COOKIE)?.value ?? "en";
   const timezone = await resolveTimezone(user.id, tenantId);
-  const canWrite = isSuperAdmin || !isSystem;
+  // Permission checks: which collections can the user read/create?
+  let canWrite: boolean;
+  let readableSet = new Set<string>();
+  let creatableSet = new Set<string>();
+  if (isSuperAdmin) {
+    canWrite = true;
+  } else {
+    const [{ data: readIds }, { data: createIds }] = await Promise.all([
+      supabase.rpc("get_accessible_collection_ids", { p_permission: "read" }),
+      supabase.rpc("get_accessible_collection_ids", { p_permission: "create" }),
+    ]);
+    readableSet = new Set<string>((readIds as string[]) ?? []);
+    creatableSet = new Set<string>((createIds as string[]) ?? []);
+    canWrite = creatableSet.has(collection.id);
+  }
 
   // Fetch tenant languages for edit dialogs
   const { data: tenantLanguages } = await getTenantLanguages(supabase, tenantId);
@@ -228,18 +239,15 @@ export default async function ItemDetailPage({
 
     activeChildFields = (childFieldsData ?? []) as Field[];
 
-    // Fetch child items filtered by parent
-    let childQuery = supabase
+    // Fetch child items filtered by parent — always scope to current tenant
+    const childQuery = supabase
       .from("collection_items")
       .select("id, data, created_at, updated_at", { count: "exact" })
       .eq("collection_id", activeChild.id)
       .eq(`data->>${activeChild.fieldSlug}`, id)
+      .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false })
       .range((childPage - 1) * CHILD_PAGE_SIZE, childPage * CHILD_PAGE_SIZE - 1);
-
-    if (!isSystem) {
-      childQuery = childQuery.eq("tenant_id", tenantId);
-    }
 
     const { data: childItems, count: childCount } = await childQuery;
     activeChildItems = (childItems ?? []) as Item[];
@@ -323,6 +331,15 @@ export default async function ItemDetailPage({
     childHasGrandchildren[activeChild.slug] = (gcCollections && gcCollections.length > 0) || false;
   }
 
+  // Filter child collections by read permission; compute per-child write permission
+  const accessibleChildren = isSuperAdmin
+    ? (childCollections ?? [])
+    : (childCollections ?? []).filter((c) => readableSet.has(c.id));
+  const childCanWriteMap: Record<string, boolean> = {};
+  for (const child of accessibleChildren) {
+    childCanWriteMap[child.slug] = isSuperAdmin || creatableSet.has(child.id);
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-6xl">
       {/* Back nav */}
@@ -351,12 +368,12 @@ export default async function ItemDetailPage({
         displayKeyFields={displayKeyFields}
       />
 
-      {/* Child collection tabs */}
-      {childCollections && childCollections.length > 0 && (
+      {/* Child collection tabs — filtered by read permission */}
+      {accessibleChildren.length > 0 && (
         <ChildCollectionTabs
           parentItemId={id}
           parentCollectionSlug={slug}
-          childCollections={childCollections}
+          childCollections={accessibleChildren}
           childCounts={childCounts}
           activeTab={activeChildTab}
           activeChildItems={activeChildItems}
@@ -368,6 +385,7 @@ export default async function ItemDetailPage({
           childPage={childPage}
           childPageSize={CHILD_PAGE_SIZE}
           canWrite={canWrite}
+          childCanWriteMap={childCanWriteMap}
           timezone={timezone}
           currentLocale={currentLocale}
           tenantLanguages={tenantLanguages ?? []}

@@ -82,8 +82,8 @@ export function EditTenantDialog({
 
  return (
  <Dialog open={open} onOpenChange={onOpenChange}>
- <DialogContent className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 shadow-[0_0_40px_rgba(0,240,255,0.15)]">
- <form onSubmit={handleSubmit}>
+ <DialogContent className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 shadow-[0_0_40px_rgba(0,240,255,0.15)] flex flex-col max-h-[90vh]">
+ <form onSubmit={handleSubmit} className="flex flex-col flex-1">
  <DialogHeader>
  <DialogTitle className="text-blue-600 dark:text-blue-400" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
  Edit Tenant
@@ -92,7 +92,7 @@ export function EditTenantDialog({
  Update tenant information.
  </DialogDescription>
  </DialogHeader>
- <div className="mt-4 space-y-4">
+ <div className="mt-4 space-y-4 overflow-y-auto pr-2 flex-1">
  <div className="space-y-2">
  <Label htmlFor="edit-tenant-name" className="text-gray-900 dark:text-gray-100">
  Tenant Name <span className="text-red-400">*</span>
@@ -157,7 +157,7 @@ export function EditTenantDialog({
  <p className="text-xs text-gray-500 dark:text-gray-400">Users can override this in their profile.</p>
  </div>
  </div>
- <DialogFooter className="mt-6">
+ <DialogFooter className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
  <div className="flex w-full items-center justify-between">
  {onDeleteRequest ? (
  <Button type="button" variant="outline" size="sm" className="text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300" onClick={onDeleteRequest}>

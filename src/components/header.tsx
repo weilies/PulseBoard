@@ -41,6 +41,8 @@ interface HeaderProps {
  // eslint-disable-next-line @typescript-eslint/no-explicit-any
  tenants: any[];
  currentTenantId: string | null;
+ isSuperAdmin: boolean;
+ isSuperTenant: boolean;
  onMobileMenuClick?: () => void;
 }
 
@@ -53,6 +55,8 @@ export function Header({
  avatarUrl,
  tenants,
  currentTenantId,
+ isSuperAdmin,
+ isSuperTenant,
  onMobileMenuClick,
 }: HeaderProps) {
  const router = useRouter();
@@ -166,12 +170,12 @@ export function Header({
  </DropdownMenuGroup>
 
  {/* Tenant Switcher */}
- {tenants.length > 1 && (
+ {isSuperAdmin && isSuperTenant && tenants.length > 1 && (
  <>
  <DropdownMenuSeparator className="bg-blue-50 dark:bg-blue-950 dark:bg-gray-800" />
  <DropdownMenuGroup>
  <DropdownMenuLabel className="text-xs font-normal text-blue-400 dark:text-blue-300 uppercase tracking-wide">
- Switch Tenant
+ Filter Tenant
  </DropdownMenuLabel>
  {tenants
  .filter((t) => t.tenant_id !== currentTenantId)

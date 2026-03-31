@@ -58,7 +58,7 @@ export async function executeQuery(
   }
 
   // 5. Aggregation or field selection
-  if (definition.aggregations.length > 0 && definition.group_by.length > 0) {
+  if (definition.aggregations.length > 0) {
     rows = applyAggregation(rows, definition.group_by, definition.aggregations);
   } else if (definition.fields.length > 0) {
     rows = selectFields(rows, definition.fields);
@@ -112,15 +112,13 @@ async function fetchAllCollections(
         );
       }
 
-      // Fetch items with tenant scoping
-      let query = db
+      // Fetch items scoped to the current tenant.
+      // System collections share schema but data is always tenant-isolated.
+      const query = db
         .from("collection_items")
         .select("id, data, created_at, updated_at")
-        .eq("collection_id", col.id);
-
-      if (colMeta.type === "tenant") {
-        query = query.eq("tenant_id", tenantId);
-      }
+        .eq("collection_id", col.id)
+        .eq("tenant_id", tenantId);
 
       const { data: items } = await query;
 

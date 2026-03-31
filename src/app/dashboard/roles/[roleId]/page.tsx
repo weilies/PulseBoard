@@ -35,7 +35,7 @@ export default async function RoleDetailPage({
     )
    )
   `).eq("id", roleId).eq("tenant_id", tenantId).single(),
-  supabase.from("policies").select("id, name, is_system").eq("tenant_id", tenantId).order("name"),
+  supabase.from("policies").select("id, name, is_system").or(`is_system.eq.true,tenant_id.eq.${tenantId}`).order("name"),
   supabase.from("collections").select("id, name, type").eq("is_hidden", false).or(`type.eq.system,tenant_id.eq.${tenantId}`).order("name"),
  ]);
 

@@ -3,9 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function createTenant(
   supabase: SupabaseClient,
-  params: { name: string; slug: string; userId: string; tenantAdminRoleId?: string; contactName?: string; contactEmail?: string }
+  params: { name: string; slug: string; userId: string; contactName?: string; contactEmail?: string }
 ) {
-  const { name, slug, userId, tenantAdminRoleId, contactName, contactEmail } = params;
+  const { name, slug, userId, contactName, contactEmail } = params;
 
   const { data: tenantData, error: tenantError } = await supabase
     .from("tenants")
@@ -14,16 +14,33 @@ export async function createTenant(
     .single();
   if (tenantError) return { error: tenantError.message };
 
-  // Assign creator as tenant_admin using admin client (bypasses RLS)
   const admin = createAdminClient();
 
-  // If tenantAdminRoleId is provided (after Phase 2 migration), use it
-  // Otherwise fall back to the old role text column
-  const insertPayload = tenantAdminRoleId
-    ? { tenant_id: tenantData.id, user_id: userId, role_id: tenantAdminRoleId, is_active: true, is_default: false }
-    : { tenant_id: tenantData.id, user_id: userId, role: "tenant_admin", is_active: true, is_default: false };
+  // Create tenant_admin role for the new tenant
+  const { data: roleData, error: roleError } = await admin
+    .from("roles")
+    .insert([{ tenant_id: tenantData.id, name: "Tenant Admin", slug: "tenant_admin", description: "Full access within this tenant", is_system: true }])
+    .select("id")
+    .single();
+  if (roleError) return { error: `Tenant created but role seeding failed: ${roleError.message}` };
 
-  const { error: assignError } = await admin.from("tenant_users").insert([insertPayload]);
+  // Link the role to the super tenant's shared "Tenant Management" system policy
+  const { data: systemPolicy } = await admin
+    .from("policies")
+    .select("id")
+    .eq("name", "Tenant Management")
+    .eq("is_system", true)
+    .limit(1)
+    .single();
+
+  if (systemPolicy) {
+    await admin.from("role_policies").insert([{ role_id: roleData.id, policy_id: systemPolicy.id }]);
+  }
+
+  // Assign creator as tenant_admin
+  const { error: assignError } = await admin.from("tenant_users").insert([
+    { tenant_id: tenantData.id, user_id: userId, role: "tenant_admin", role_id: roleData.id, is_default: false },
+  ]);
   if (assignError) return { error: `Tenant created but could not assign creator: ${assignError.message}` };
 
   return { data: tenantData };

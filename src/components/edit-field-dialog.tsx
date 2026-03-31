@@ -24,6 +24,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateField, deleteField } from "@/app/actions/studio";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 type SimpleCollection = { id: string; name: string; slug: string };
 
@@ -407,27 +408,17 @@ export function EditFieldDialog({
                   Delete Field
                 </Button>
               ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-red-500">Delete this field and all its data?</span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-7 bg-red-500/20 border border-red-500/40 text-red-500 hover:bg-red-500/30"
-                    disabled={deleting}
-                    onClick={handleDelete}
-                  >
-                    {deleting ? "Deleting..." : "Confirm"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-gray-500"
-                    onClick={() => setConfirmDelete(false)}
-                  >
-                    No
-                  </Button>
-                </div>
+                <ConfirmActionDialog
+                  isOpen={confirmDelete}
+                  severity="danger"
+                  message={`Delete this field and all its data? This cannot be undone.`}
+                  confirmLabel="Delete"
+                  cancelLabel="Cancel"
+                  confirmVariant="destructive"
+                  onConfirm={handleDelete}
+                  onCancel={() => setConfirmDelete(false)}
+                  isLoading={deleting}
+                />
               )}
             </div>
             <div className="flex items-center gap-2">

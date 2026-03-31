@@ -58,6 +58,9 @@ export default async function DashboardLayout({
  // Legacy role for Header compatibility
  const { data: superAdminCheck } = await supabase.rpc("is_super_admin");
  const effectiveRole = superAdminCheck ? "super_admin" : "tenant_admin";
+ const isSuperAdmin = !!superAdminCheck;
+ const currentTenantEntry = (tenants as any[]).find(t => t.tenant_id === tenantId);
+ const isSuperTenant = (currentTenantEntry as any)?.tenants?.is_super ?? false;
 
  // User profile: timezone + avatar
  const { data: profileData } = await supabase
@@ -86,6 +89,8 @@ export default async function DashboardLayout({
  avatarUrl={avatarUrl}
  tenants={tenants}
  currentTenantId={tenantId}
+ isSuperAdmin={isSuperAdmin}
+ isSuperTenant={isSuperTenant}
  accessiblePages={accessiblePages}
  rootFolders={rootFolders}
  rootItems={rootItems}

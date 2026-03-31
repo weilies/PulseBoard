@@ -55,6 +55,8 @@ interface Props {
   childPage: number;
   childPageSize: number;
   canWrite: boolean;
+  /** Per-child-collection write permission. Falls back to canWrite if not provided. */
+  childCanWriteMap?: Record<string, boolean>;
   timezone: string;
   currentLocale: string;
   tenantLanguages: TenantLanguage[];
@@ -131,6 +133,7 @@ export function ChildCollectionTabs({
   childPage,
   childPageSize,
   canWrite,
+  childCanWriteMap,
   timezone,
   currentLocale,
   tenantLanguages,
@@ -139,6 +142,10 @@ export function ChildCollectionTabs({
   basePathOverride,
   activeChildRelatedLabels,
 }: Props) {
+  // Resolve write permission for the active child tab
+  const activeChildCanWrite = activeChild
+    ? (childCanWriteMap?.[activeChild.slug] ?? canWrite)
+    : canWrite;
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const totalPages = Math.ceil(activeChildTotal / childPageSize);
 
@@ -207,7 +214,7 @@ export function ChildCollectionTabs({
             <span className="text-sm text-gray-500">
               {activeChildTotal} record{activeChildTotal !== 1 ? "s" : ""}
             </span>
-            {canWrite && (
+            {activeChildCanWrite && (
               <AddChildDialog
                 parentItemId={parentItemId}
                 parentFieldSlug={activeChild.fieldSlug}
@@ -233,7 +240,7 @@ export function ChildCollectionTabs({
                     </TableHead>
                   ))}
                   {effectiveDateField && <TableHead className="text-gray-500 dark:text-gray-400 w-20">Status</TableHead>}
-                  {canWrite && <TableHead className="w-10" />}
+                  {activeChildCanWrite && <TableHead className="w-10" />}
                   {hasGrandchildren && <TableHead className="w-8" />}
                 </TableRow>
               </TableHeader>
@@ -241,10 +248,10 @@ export function ChildCollectionTabs({
                 {activeChildItems.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={displayFields.length + (canWrite ? 3 : 2) + (hasGrandchildren ? 1 : 0)}
+                      colSpan={displayFields.length + (activeChildCanWrite ? 3 : 2) + (hasGrandchildren ? 1 : 0)}
                       className="text-center text-gray-500 dark:text-gray-400 py-10 bg-white dark:bg-gray-900"
                     >
-                      No records yet.{canWrite ? " Click \"+ Add\" to create the first record." : ""}
+                      No records yet.{activeChildCanWrite ? " Click \"+ Add\" to create the first record." : ""}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -265,7 +272,7 @@ export function ChildCollectionTabs({
                         isCurrent={isCurrent}
                         isHistorical={!!isHistorical}
                         effectiveDateField={effectiveDateField}
-                        canWrite={canWrite}
+                        canWrite={activeChildCanWrite}
                         collectionId={activeChild.id}
                         collectionSlug={activeChild.slug}
                         parentCollectionSlug={parentCollectionSlug}
@@ -273,7 +280,7 @@ export function ChildCollectionTabs({
                         hasGrandchildren={hasGrandchildren}
                         isExpanded={expandedRowId === item.id}
                         onToggleExpand={() => setExpandedRowId(expandedRowId === item.id ? null : item.id)}
-                        totalColumns={displayFields.length + (canWrite ? 3 : 2) + (hasGrandchildren ? 1 : 0)}
+                        totalColumns={displayFields.length + (activeChildCanWrite ? 3 : 2) + (hasGrandchildren ? 1 : 0)}
                       />
                     );
                   })

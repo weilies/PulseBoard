@@ -28,15 +28,13 @@ async function resolveItem(
   }
   const hooks = (collection.hooks ?? {}) as Record<string, unknown>;
 
-  let q = db
+  // Always scope to current tenant — system collections share schema but data is per-tenant.
+  const q = db
     .from("collection_items")
     .select("id, data, created_at, updated_at, created_by, updated_by, collection_id, tenant_id")
     .eq("id", itemId)
-    .eq("collection_id", collection.id);
-
-  if (collection.type === "tenant") {
-    q = q.eq("tenant_id", tenantId);
-  }
+    .eq("collection_id", collection.id)
+    .eq("tenant_id", tenantId);
 
   const { data: item } = await q.maybeSingle();
   if (!item) return { ok: false, error: "Item not found", status: 404 };

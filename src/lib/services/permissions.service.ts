@@ -26,9 +26,12 @@ export const PAGE_SLUGS = {
   STUDIO_TENANT_COLLECTIONS: "studio.tenant-collections",
   STUDIO_NAVIGATIONS: "studio.navigations",
   STUDIO_QUERIES: "studio.queries",
+  STUDIO_LOGS: "studio.logs",
   ROLES: "roles",
   POLICIES: "policies",
   APPS: "apps",
+  WEBHOOKS: "webhooks",
+  STUDIO_APP_STORE: "studio.app-store",
 } as const;
 
 export type PageSlug = (typeof PAGE_SLUGS)[keyof typeof PAGE_SLUGS];
@@ -46,10 +49,37 @@ export const PAGE_LABELS: Record<string, string> = {
   "studio.tenant-collections": "Tenant Collections",
   "studio.navigations": "Navigations",
   "studio.queries": "Query Generator",
+  "studio.logs": "Activity Log",
   "roles": "Roles",
   "policies": "Policies",
   "apps": "Applications",
+  "webhooks": "Webhooks",
+  "studio.app-store": "App Store",
 };
+
+/** Page sections for policy editor — mirrors sidebar grouping. */
+export const PAGE_SECTIONS: Array<{ section: string; pages: string[] }> = [
+  { section: "General", pages: ["dashboard"] },
+  {
+    section: "User Management",
+    pages: ["users", "roles", "policies", "tenants"],
+  },
+  {
+    section: "Studio",
+    pages: [
+      "studio.system-collections",
+      "studio.tenant-collections",
+      "studio.content-catalog",
+      "studio.navigations",
+      "studio.queries",
+      "studio.logs",
+    ],
+  },
+  {
+    section: "Integration",
+    pages: ["apps", "webhooks", "studio.app-store"],
+  },
+];
 
 /** All collection permission keys. */
 export const COLLECTION_PERMS = ["read", "create", "update", "delete", "export", "import", "manage_schema"] as const;

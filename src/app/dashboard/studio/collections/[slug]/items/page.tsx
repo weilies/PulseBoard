@@ -267,7 +267,18 @@ export default async function ItemsPage({
  }
  const totalItems = count ?? 0;
  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
- const canWrite = isSuperAdmin || !isSystem;
+
+ // For tenant collections: always writable (RLS enforces tenant scope).
+ // For system collections: check if the user has policy-granted create permission.
+ let canWrite: boolean;
+ if (isSuperAdmin) {
+   canWrite = true;
+ } else if (!isSystem) {
+   canWrite = true;
+ } else {
+   const { data: writableIds } = await supabase.rpc("get_accessible_collection_ids", { p_permission: "create" });
+   canWrite = ((writableIds as string[]) ?? []).includes(collection.id);
+ }
 
  // Check if this collection has child collections (for drill-down links)
  const { data: childCollections } = await getChildCollections(collection.id);

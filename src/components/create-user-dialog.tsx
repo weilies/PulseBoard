@@ -27,17 +27,12 @@ import { toast } from "sonner";
 import { createUser } from "@/app/actions/dashboard";
 import { ROLES } from "@/lib/constants";
 
-const ROLE_LABELS: Record<string, string> = {
- [ROLES.TENANT_ADMIN]: 'Tenant Admin',
- [ROLES.SUPER_ADMIN]: 'Super Admin',
-};
-
 interface CreateUserDialogProps {
  tenantId: string;
- isSuperTenant?: boolean;
+ availableRoles: { slug: string; name: string }[];
 }
 
-export function CreateUserDialog({ tenantId, isSuperTenant }: CreateUserDialogProps) {
+export function CreateUserDialog({ tenantId, availableRoles }: CreateUserDialogProps) {
  const router = useRouter();
  const [open, setOpen] = useState(false);
  const [loading, setLoading] = useState(false);
@@ -115,13 +110,12 @@ export function CreateUserDialog({ tenantId, isSuperTenant }: CreateUserDialogPr
  <Label>Role</Label>
  <Select value={role} onValueChange={(v) => v && setRole(v)}>
  <SelectTrigger>
- <SelectValue>{ROLE_LABELS[role] ?? role}</SelectValue>
+ <SelectValue>{availableRoles.find((r) => r.slug === role)?.name ?? role}</SelectValue>
  </SelectTrigger>
  <SelectContent>
- <SelectItem value={ROLES.TENANT_ADMIN}>Tenant Admin</SelectItem>
- {isSuperTenant && (
- <SelectItem value={ROLES.SUPER_ADMIN}>Super Admin</SelectItem>
- )}
+ {availableRoles.map((r) => (
+  <SelectItem key={r.slug} value={r.slug}>{r.name}</SelectItem>
+ ))}
  </SelectContent>
  </Select>
  </div>

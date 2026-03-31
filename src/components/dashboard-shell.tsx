@@ -19,6 +19,8 @@ interface DashboardShellProps {
  // eslint-disable-next-line @typescript-eslint/no-explicit-any
  tenants: any[];
  currentTenantId: string | null;
+ isSuperAdmin: boolean;
+ isSuperTenant: boolean;
  // Sidebar props
  accessiblePages: string[];
  rootFolders: NavFolder[];
@@ -28,7 +30,7 @@ interface DashboardShellProps {
 }
 
 export function DashboardShell({
- userEmail, userName, userRole, userId, userTimezone, avatarUrl, tenants, currentTenantId,
+ userEmail, userName, userRole, userId, userTimezone, avatarUrl, tenants, currentTenantId, isSuperAdmin, isSuperTenant,
  accessiblePages, rootFolders, rootItems, collectionMap,
  children,
 }: DashboardShellProps) {
@@ -70,6 +72,8 @@ export function DashboardShell({
  avatarUrl={avatarUrl}
  tenants={tenants}
  currentTenantId={currentTenantId}
+ isSuperAdmin={isSuperAdmin}
+ isSuperTenant={isSuperTenant}
  onMobileMenuClick={() => setMobileOpen(true)}
  />
  <main className="flex-1 overflow-y-auto p-4 md:p-6">

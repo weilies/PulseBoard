@@ -183,16 +183,14 @@ export async function GET(request: NextRequest, { params }: Params) {
     }
   }
 
+  // Always scope to current tenant — system collections share schema but data is per-tenant.
   let query = db
     .from("collection_items")
     .select("id, data, created_at, updated_at, created_by, updated_by", { count: "exact" })
     .eq("collection_id", collection.id)
+    .eq("tenant_id", tenantId)
     .order(sortField, { ascending })
     .range(from, to);
-
-  if (collection.type === "tenant") {
-    query = query.eq("tenant_id", tenantId);
-  }
 
   // Apply parent_id filter via JSONB
   if (parentId && parentFieldSlug) {

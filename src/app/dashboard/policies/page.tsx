@@ -43,30 +43,27 @@ export default async function PoliciesPage({
  const tenantId = await resolveTenant(user.id);
  if (!tenantId) return null;
 
- let pq = supabase.from("policies").select(`
-   id, name, description, is_system, created_at,
-   role_policies(
-    role:roles(id, name)
-   )
-  `, { count: "exact" }).eq("tenant_id", tenantId);
-
- if (filters.name) pq = pq.ilike("name", `%${filters.name}%`);
-
- const [{ data: tenantInfo }, { data: policies, count }] = await Promise.all([
+ const [{ data: tenantInfo }, pqResult] = await Promise.all([
   supabase.from("tenants").select("is_super").eq("id", tenantId).single(),
-  pq.order("is_system", { ascending: false }).order(sortCol, { ascending }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+  (async () => {
+   let pq = supabase.from("policies").select(`
+     id, name, description, is_system, created_at,
+     role_policies(
+      role:roles(id, name, tenant_id)
+     )
+    `, { count: "exact" }).or(`is_system.eq.true,tenant_id.eq.${tenantId}`);
+   if (filters.name) pq = pq.ilike("name", `%${filters.name}%`);
+   return pq.order("is_system", { ascending: false }).order(sortCol, { ascending }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  })(),
  ]);
+
  const isSuperTenant = !!tenantInfo?.is_super;
 
- // Filter policies based on visibility rules:
- // - Super tenant: show all policies
- // - Other tenants: show custom policies + "Tenant Management" system policy
- const rows = (policies ?? []).filter((policy) => {
-  if (!policy.is_system) return true; // custom policies always visible in their tenant
-  if (isSuperTenant) return true;     // super tenant sees all system policies
-  // Non-super tenants only see "Tenant Management" — policies table has no slug column, so name match is required
-  return policy.name === "Tenant Management";
- });
+ // Non-super tenants only see "Tenant Management" system policy — not "Full Platform Access" etc.
+ const rows = (pqResult.data ?? []).filter((p) =>
+  !p.is_system || isSuperTenant || p.name === "Tenant Management"
+ );
+ const count = pqResult.count;
  const totalItems = count ?? 0;
  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
 
@@ -110,11 +107,10 @@ export default async function PoliciesPage({
       ) : (
        rows.map((policy, i) => {
         const linkedRoles = (policy.role_policies ?? [])
-         .map((rp) => {
-          const r = rp.role as unknown as { id: string; name: string } | null;
-          return r;
-         })
-         .filter(Boolean) as { id: string; name: string }[];
+         .map((rp) => rp.role as unknown as { id: string; name: string; tenant_id: string } | null)
+         .filter((r): r is { id: string; name: string; tenant_id: string } =>
+          r != null && r.tenant_id === tenantId
+         );
 
         return (
          <TableRow

@@ -11,14 +11,13 @@ import { Button } from "@/components/ui/button";
 import {
  Dialog,
  DialogContent,
- DialogDescription,
- DialogFooter,
  DialogHeader,
  DialogTitle,
 } from "@/components/ui/dialog";
 import { MoreHorizontal, Pencil, Send } from "lucide-react";
 import { deleteWebhook, testWebhook } from "@/app/actions/webhooks";
 import { WebhookDialog } from "@/components/webhook-dialog";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { toast } from "sonner";
 
 type Webhook = {
@@ -116,23 +115,22 @@ export function WebhookActions({
 
    {/* Delete Confirmation Dialog */}
    <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-    <DialogContent className="bg-white dark:bg-gray-900 border border-red-500/30 text-gray-900 dark:text-gray-100">
+    <DialogContent className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
      <DialogHeader>
-      <DialogTitle className="text-red-400">Delete Webhook</DialogTitle>
-      <DialogDescription className="text-gray-500 dark:text-gray-400">
-       Delete <strong className="text-gray-900 dark:text-gray-100">&quot;{webhook.name}&quot;</strong>? This cannot be undone.
-      </DialogDescription>
+      <DialogTitle>Delete Webhook</DialogTitle>
      </DialogHeader>
-     <DialogFooter className="mt-4">
-      <Button variant="outline" onClick={() => setDeleteOpen(false)} className="border-gray-300 dark:border-gray-600">Cancel</Button>
-      <Button
-       onClick={handleDelete}
-       disabled={deleting}
-       className="bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30"
-      >
-       {deleting ? "Deleting..." : "Delete Webhook"}
-      </Button>
-     </DialogFooter>
+
+     <ConfirmActionDialog
+      isOpen={deleteOpen}
+      severity="danger"
+      message={`Delete "${webhook.name}"? This will stop all webhook deliveries immediately. This cannot be undone.`}
+      confirmLabel="Delete Webhook"
+      cancelLabel="Cancel"
+      confirmVariant="destructive"
+      onConfirm={handleDelete}
+      onCancel={() => setDeleteOpen(false)}
+      isLoading={deleting}
+     />
     </DialogContent>
    </Dialog>
   </>

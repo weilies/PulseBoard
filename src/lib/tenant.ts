@@ -9,12 +9,26 @@ export async function getCurrentTenantId(): Promise<string | null> {
 }
 
 export async function resolveTenant(userId: string): Promise<string | null> {
-  // Check cookie first
+  // Check cookie first, but validate user is assigned to that tenant
   const cookieTenantId = await getCurrentTenantId();
-  if (cookieTenantId) return cookieTenantId;
+  const supabase = await createClient();
+
+  if (cookieTenantId) {
+    // Verify user is assigned to the cookie-specified tenant
+    const { data: membership } = await supabase
+      .from("tenant_users")
+      .select("tenant_id")
+      .eq("user_id", userId)
+      .eq("tenant_id", cookieTenantId)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (membership?.tenant_id) return cookieTenantId;
+    // Cookie points to a tenant user isn't in — fall through to find valid tenant
+  }
 
   // Fallback: query via user's session
-  const supabase = await createClient();
   const { data } = await supabase
     .from("tenant_users")
     .select("tenant_id")

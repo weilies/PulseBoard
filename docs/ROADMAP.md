@@ -7,6 +7,80 @@
 
 ## Pending (No Date)
 
+### Country-Specific Fields (System Collections)
+**Priority:** High
+**Complexity:** Medium
+**Summary:**
+Extend system collection schema to support country-specific field visibility and validation.
+- Add `enabled_for_countries: string[]` metadata to field definitions
+- Filter fields in API responses based on `record.country` match
+- Enforce `required` validation only for applicable countries
+- Multi-country support: fields can apply to multiple countries (e.g., tax ID for US, CA, MX)
+
+**Deferred because:** Waiting for quota reset (Friday).
+
+---
+
+### Tenant-Specific Fields via Child Collections
+**Priority:** High
+**Complexity:** Medium
+**Summary:**
+Allow tenants to extend core collections with custom fields without polluting system schema.
+- Create tenant-owned child collections with 1:1 link to parent (e.g., EmployeeExtended → Employees)
+- Each tenant maintains their own in-schema (e.g., Acme's `is_smoker` field isolated to Acme tenant)
+- Add cascade delete when parent record is deleted
+- Tenant admins can add fields via studio without schema migration
+
+**Deferred because:** Waiting for quota reset (Friday).
+
+---
+
+### Rules & Workflow Engine (Synchronous Mode)
+**Priority:** High
+**Complexity:** High
+**Summary:**
+Implement synchronous rule execution on CREATE/UPDATE operations for validation and approval triggers.
+- Rules evaluate on record save
+- Support conditional approval workflows (e.g., "salary > $500k requires manager approval")
+- Block save if rule validation fails
+- Create approval tasks and audit trail
+
+**Dependencies:** Country-specific fields + child collections (foundation for rule conditions).
+**Deferred because:** Waiting for quota reset (Friday); merged with approval workflow phase.
+
+---
+
+### RBAC: Collection Item-Level Permissions
+**Priority:** Critical
+**Complexity:** High
+**Summary:**
+Implement fine-grained RBAC for items within a collection (e.g., HR Manager can only access Employees where department="IT" AND grade<5).
+- Reuse existing `roles` table; add `collection_role_policies` table
+- Policies define: role + collection + allowed actions + attribute-based conditions (JSONB)
+- ALLOW (whitelist) logic: if policy exists, apply restrictions; if not, default to allow-all (backward compat)
+- Support dynamic conditions (e.g., user.department = record.department)
+- Optional field masking (hide SSN from certain roles)
+- Mandatory audit trail: log policy changes + all access attempts (allowed/denied)
+- UI: Tenant admins configure policies in Studio (Collection → Permissions Tab)
+
+**Data model:**
+```sql
+collection_role_policies (
+  id, tenant_id, collection_id, role_id, policy_name,
+  actions text[], conditions JSONB, visible_fields text[]
+)
+
+rbac_audit_log (
+  id, tenant_id, timestamp, event_type, user_id,
+  collection_id, role_id, policy_id, accessed_item_id, action,
+  was_allowed boolean, details JSONB
+)
+```
+
+**Deferred because:** Waiting for quota reset (Friday); high token cost; critical after rules engine.
+
+---
+
 ### Full UI Internationalisation (i18n)
 **Priority:** Low
 **Complexity:** Very High

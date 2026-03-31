@@ -127,10 +127,13 @@ export default async function SystemCollectionsPage({
  className={`border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${i % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50 dark:bg-gray-800/50"}`}
  >
  <TableCell>
- <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100">
+ <Link
+ href={`/dashboard/studio/collections/${c.slug}/items`}
+ className="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+ >
  <Settings className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400/50 shrink-0" />
  {c.name}
- </div>
+ </Link>
  </TableCell>
  <TableCell>
  <code className="rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-xs text-blue-600 dark:text-blue-400 font-mono">{c.slug}</code>

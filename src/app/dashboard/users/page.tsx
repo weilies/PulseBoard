@@ -155,14 +155,14 @@ export default async function UsersPage({
  </div>
  {tenantId && (
  <div className="flex flex-wrap gap-2">
- {isSuperAdmin && (
+ {isSuperAdmin && isSuperTenant && (
  <TenantSwitcher
  tenants={allTenants.map((t: { id: string; name: string; slug: string; is_super: boolean }) => ({ tenant_id: t.id, tenants: t }))}
  currentTenantId={tenantId}
  />
  )}
- <AssignUserDialog tenantId={tenantId} isSuperTenant={isSuperTenant} />
- <CreateUserDialog tenantId={tenantId} isSuperTenant={isSuperTenant} />
+ {isSuperAdmin && isSuperTenant && <AssignUserDialog tenantId={tenantId} isSuperTenant={isSuperTenant} />}
+ <CreateUserDialog tenantId={tenantId} availableRoles={availableRoles} />
  </div>
  )}
  </div>

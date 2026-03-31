@@ -151,14 +151,14 @@ export function WebhookDialog({
   <div onClick={() => setOpen(true)} className="contents">{trigger}</div>
   )}
   <Dialog open={open} onOpenChange={setOpen}>
-  <DialogContent className="sm:max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+  <DialogContent className="sm:max-w-md bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]">
    <DialogHeader>
    <DialogTitle className="text-gray-900 dark:text-gray-100" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
     {isEdit ? "Edit Webhook" : "Add Webhook"}
    </DialogTitle>
    </DialogHeader>
 
-   <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 pt-2">
+   <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 pt-2 overflow-y-auto pr-2 flex-1">
    {/* Scope type */}
    {!isEdit && !initialSlug && (
     <div className="space-y-1.5">

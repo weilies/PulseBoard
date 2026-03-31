@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { MoreHorizontal, RefreshCw, Power, Copy, Check, AlertTriangle, Settings, Trash2 } from "lucide-react";
 import { rotateAppSecret, toggleApp, deleteApp } from "@/app/actions/apps";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { toast } from "sonner";
 
 interface AppActionsProps {
@@ -167,22 +168,17 @@ export function AppActions({ app }: AppActionsProps) {
          Delete App
         </Button>
        ) : (
-        <div className="space-y-2">
-         <p className="text-sm text-red-400">
-          This will permanently revoke all API access. <code className="rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-xs font-mono">{app.app_id}</code> will stop working immediately.
-         </p>
-         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)} className="border-gray-300 dark:border-gray-600">Cancel</Button>
-          <Button
-           size="sm"
-           onClick={handleDelete}
-           disabled={loading}
-           className="bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30"
-          >
-           {loading ? "Deleting..." : "Confirm Delete"}
-          </Button>
-         </div>
-        </div>
+        <ConfirmActionDialog
+         isOpen={confirmDelete}
+         severity="danger"
+         message={`This will permanently revoke all API access. ${app.app_id} will stop working immediately.`}
+         confirmLabel="Delete App"
+         cancelLabel="Cancel"
+         confirmVariant="destructive"
+         onConfirm={handleDelete}
+         onCancel={() => setConfirmDelete(false)}
+         isLoading={loading}
+        />
        )}
       </div>
      </div>

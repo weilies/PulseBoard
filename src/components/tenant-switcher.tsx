@@ -17,16 +17,16 @@ interface TenantSwitcherProps {
  // eslint-disable-next-line @typescript-eslint/no-explicit-any
  tenants: any[];
  currentTenantId: string | null;
+ basePath?: string;
 }
 
-export function TenantSwitcher({ tenants, currentTenantId }: TenantSwitcherProps) {
+export function TenantSwitcher({ tenants, currentTenantId, basePath = "/dashboard/users" }: TenantSwitcherProps) {
  const router = useRouter();
  const currentTenant = tenants.find((t) => t.tenant_id === currentTenantId);
  const currentName = currentTenant?.tenants?.name || "Select tenant";
 
- function switchTenant(tenantId: string) {
-  document.cookie = `${TENANT_COOKIE}=${tenantId};path=/;samesite=lax`;
-  router.refresh();
+ function filterTenant(tenantId: string) {
+  router.push(`${basePath}?tenant=${tenantId}`);
  }
 
  if (tenants.length <= 1) {
@@ -47,11 +47,11 @@ export function TenantSwitcher({ tenants, currentTenantId }: TenantSwitcherProps
    </DropdownMenuTrigger>
    <DropdownMenuContent>
     <DropdownMenuGroup>
-     <DropdownMenuLabel>Switch Tenant</DropdownMenuLabel>
+     <DropdownMenuLabel>Filter Tenant</DropdownMenuLabel>
      {tenants.map((t) => (
       <DropdownMenuItem
        key={t.tenant_id}
-       onClick={() => switchTenant(t.tenant_id)}
+       onClick={() => filterTenant(t.tenant_id)}
        className={t.tenant_id === currentTenantId ? "bg-zinc-100 dark:bg-zinc-800" : ""}
       >
        <span className="flex-1">{t.tenants?.name || "Unknown"}</span>

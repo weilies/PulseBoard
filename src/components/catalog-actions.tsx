@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { updateCatalog, deleteCatalog } from "@/app/actions/content-catalog";
 
 interface Props {
@@ -121,18 +122,27 @@ export function CatalogActions({ catalogId, catalogName, catalogSlug: _slug, des
  </Dialog>
 
  <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
- <DialogContent className="bg-white dark:bg-gray-900 border border-red-500/30 text-gray-900 dark:text-gray-100">
+ <DialogContent className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
  <DialogHeader>
- <DialogTitle className="text-red-400">Delete Catalog</DialogTitle>
- <DialogDescription className="text-gray-500 dark:text-gray-400">
- This will permanently delete <strong className="text-white">{catalogName}</strong> and all its items. This cannot be undone.
- </DialogDescription>
+ <DialogTitle>Delete Catalog</DialogTitle>
  </DialogHeader>
- <DialogFooter className="mt-6">
- <DialogClose render={<Button type="button" variant="outline" className="border-zinc-600 text-gray-500 dark:text-gray-400 hover:bg-zinc-700" />}>Cancel</DialogClose>
- <Button onClick={handleDelete} disabled={loading} className="bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/200/30">
- {loading ? "Deleting..." : "Delete"}
- </Button>
+
+ <ConfirmActionDialog
+ isOpen={deleteOpen}
+ severity="danger"
+ message={`This will permanently delete "${catalogName}" and all its items. This cannot be undone.`}
+ confirmLabel="Delete"
+ cancelLabel="Cancel"
+ confirmVariant="destructive"
+ onConfirm={handleDelete}
+ onCancel={() => setDeleteOpen(false)}
+ isLoading={loading}
+ />
+
+ <DialogFooter className="mt-4">
+ <DialogClose render={<Button type="button" variant="outline" />}>
+ Close
+ </DialogClose>
  </DialogFooter>
  </DialogContent>
  </Dialog>

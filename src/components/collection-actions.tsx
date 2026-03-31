@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { MoreHorizontal, Pencil, Trash2, LayoutList, Database, Settings, PanelLeft, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { updateCollection, updateCollectionTranslations, deleteCollection } from "@/app/actions/studio";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { LANG_COOKIE, SUPPORTED_LANGUAGES } from "@/lib/constants";
 
 interface Props {
@@ -187,8 +188,8 @@ export function CollectionActions({
 
  {/* Edit Dialog */}
  <Dialog open={editOpen} onOpenChange={setEditOpen}>
- <DialogContent className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
- <form onSubmit={handleEdit}>
+ <DialogContent className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 flex flex-col max-h-[90vh]">
+ <form onSubmit={handleEdit} className="flex flex-col flex-1">
  <DialogHeader>
  <DialogTitle className="text-blue-600 dark:text-blue-400">
  {isTranslating ? `Translate Collection (${langLabel})` : "Edit Collection"}
@@ -200,8 +201,9 @@ export function CollectionActions({
  </DialogDescription>
  </DialogHeader>
 
+ <div className="mt-3 space-y-4 overflow-y-auto pr-2 flex-1">
  {isTranslating && (
- <div className="mt-3 rounded-md bg-violet-500/10 border border-violet-500/20 px-3 py-2">
+ <div className="rounded-md bg-violet-500/10 border border-violet-500/20 px-3 py-2">
  <p className="text-xs text-violet-300">
  English name: <strong>{collectionName}</strong>
  {description && <><br />English description: <strong>{description}</strong></>}
@@ -209,7 +211,7 @@ export function CollectionActions({
  </div>
  )}
 
- <div className="mt-4 space-y-4">
+ <div className="space-y-4">
  <div className="space-y-2">
  <Label className="text-gray-900 dark:text-gray-100">
  Name {isTranslating && <span className="text-xs text-gray-500 dark:text-gray-400">({langLabel})</span>}
@@ -252,7 +254,8 @@ export function CollectionActions({
  </div>
  )}
  </div>
- <DialogFooter className="mt-6">
+ </div>
+ <DialogFooter className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
  <div className="flex w-full items-center justify-between">
  <Button
  type="button"
@@ -292,33 +295,27 @@ export function CollectionActions({
 
  {/* Delete Confirm Dialog */}
  <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
- <DialogContent className="bg-white dark:bg-gray-900 border border-red-500/30 text-gray-900 dark:text-gray-100">
+ <DialogContent className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
  <DialogHeader>
- <DialogTitle className="text-red-400">Delete Collection</DialogTitle>
- <DialogDescription className="text-gray-500 dark:text-gray-400">
- This will permanently delete <strong className="text-gray-900 dark:text-gray-100">{collectionName}</strong>{""}
- and all its fields and items. This cannot be undone.
- </DialogDescription>
+ <DialogTitle>Delete Collection</DialogTitle>
  </DialogHeader>
- <DialogFooter className="mt-6">
- <DialogClose
- render={
- <Button
- type="button"
- variant="outline"
- className="border-zinc-600 text-gray-500 dark:text-gray-400 hover:bg-zinc-700"
+
+ <ConfirmActionDialog
+ isOpen={deleteOpen}
+ severity="danger"
+ message={`This will permanently delete "${collectionName}" and all its fields and items. This cannot be undone.`}
+ confirmLabel="Delete"
+ cancelLabel="Cancel"
+ confirmVariant="destructive"
+ onConfirm={handleDelete}
+ onCancel={() => setDeleteOpen(false)}
+ isLoading={loading}
  />
- }
- >
- Cancel
+
+ <DialogFooter className="mt-4">
+ <DialogClose render={<Button type="button" variant="outline" />}>
+ Close
  </DialogClose>
- <Button
- onClick={handleDelete}
- disabled={loading}
- className="bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/200/30"
- >
- {loading ? "Deleting..." : "Delete"}
- </Button>
  </DialogFooter>
  </DialogContent>
  </Dialog>
