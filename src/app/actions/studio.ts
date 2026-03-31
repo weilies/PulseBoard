@@ -261,6 +261,24 @@ export async function moveField(formData: FormData) {
   return { data: true };
 }
 
+export async function reorderFields(fieldIds: string[], collectionSlug: string) {
+  if (!fieldIds?.length || !collectionSlug) {
+    return { error: "Missing required params" };
+  }
+
+  const supabase = await createClient();
+
+  for (let i = 0; i < fieldIds.length; i++) {
+    await supabase
+      .from("collection_fields")
+      .update({ sort_order: i + 1 })
+      .eq("id", fieldIds[i]);
+  }
+
+  revalidatePath(`/dashboard/studio/collections/${collectionSlug}/schema`);
+  return { data: true };
+}
+
 // ---------------------------------------------------------------------------
 // Items
 // ---------------------------------------------------------------------------

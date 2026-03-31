@@ -5,8 +5,8 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { Badge } from "@/components/ui/badge";
 import { CreateFieldDialog } from "@/components/create-field-dialog";
-import { FieldActions } from "@/components/field-actions";
-import { Database, Layers, ArrowLeft, GripVertical } from "lucide-react";
+import { DraggableFieldList } from "@/components/draggable-field-list";
+import { Database, Layers, ArrowLeft } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 
 function resolveCollectionIcon(
@@ -23,34 +23,6 @@ function resolveCollectionIcon(
 import Link from "next/link";
 import { getFieldLabel, getCollectionName, getCollectionDescription } from "@/lib/i18n";
 import { LANG_COOKIE } from "@/lib/constants";
-
-const FIELD_TYPE_LABELS: Record<string, string> = {
- text: "Text",
- number: "Number",
- date: "Date",
- datetime: "Date & Time",
- boolean: "Toggle",
- file: "File",
- select: "Select",
- multiselect: "Multi-Select",
- richtext: "Rich Text",
- json: "JSON",
- relation: "Relation",
-};
-
-const FIELD_TYPE_COLORS: Record<string, string> = {
- text: "border-blue-500/40 text-blue-600 dark:text-blue-400",
- number: "border-orange-500/40 text-orange-400",
- date: "border-yellow-500/40 text-yellow-400",
- datetime: "border-yellow-500/40 text-yellow-400",
- boolean: "border-green-500/40 text-green-400",
- file: "border-pink-500/40 text-pink-400",
- select: "border-purple-500/40 text-purple-400",
- multiselect: "border-purple-500/40 text-purple-400",
- richtext: "border-blue-500/40 text-blue-600 dark:text-blue-400",
- json: "border-zinc-500/40 text-zinc-400",
- relation: "border-blue-500/40 text-blue-600 dark:text-blue-400",
-};
 
 type Field = {
  id: string;
@@ -218,21 +190,14 @@ export default async function SchemaPage({
  )}
  </div>
  ) : (
- <div className="space-y-2">
- {fields.map((field, index) => (
- <FieldRow
- key={field.id}
- field={field}
- index={index}
- total={fields.length}
+ <DraggableFieldList
+ fields={fields}
  collectionId={collection.id}
  collectionSlug={collection.slug}
  allCollections={allCollections ?? []}
  canEdit={canEdit}
  currentLocale={currentLocale}
  />
- ))}
- </div>
  )}
 
  {/* API hint */}
@@ -242,91 +207,6 @@ export default async function SchemaPage({
  <code className="text-blue-600 dark:text-blue-400 font-mono">/api/collections/{collection.slug}/items</code>
  </p>
  </div>
- </div>
- );
-}
-
-function FieldRow({
- field,
- index,
- total,
- collectionId,
- collectionSlug,
- allCollections,
- canEdit,
- currentLocale,
-}: {
- field: Field;
- index: number;
- total: number;
- collectionId: string;
- collectionSlug: string;
- allCollections: { id: string; name: string; slug: string }[];
- canEdit: boolean;
- currentLocale: string;
-}) {
- const opts = field.options as Record<string, unknown>;
- const typeColor = FIELD_TYPE_COLORS[field.field_type] ?? "border-zinc-500/40 text-zinc-400";
-
- let relationDetail: string | null = null;
- let relationStyle: string | null = null;
- if (field.field_type === "relation" && opts?.relation_type) {
- const relCol = allCollections.find((c) => c.id === opts.related_collection_id);
- const relLabel = relCol ? relCol.name : "unknown";
- const displayField = opts.display_field ? ` (shows: ${opts.display_field})` : "";
- relationDetail = `${String(opts.relation_type).toUpperCase()} → ${relLabel}${displayField}`;
- const style = opts.relationship_style as string | undefined;
- if (style === "child_of") relationStyle = "Child of";
- else if (style === "link") relationStyle = "Link";
- }
-
- return (
- <div className="flex items-center gap-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 hover:border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
- <GripVertical className="h-4 w-4 text-gray-500 dark:text-gray-400/40 flex-shrink-0" />
-
- <div className="flex-1 min-w-0">
- <div className="flex items-center gap-2 flex-wrap">
- <span className="font-medium text-sm text-gray-900 dark:text-gray-100">{getFieldLabel(field, currentLocale)}</span>
- <code className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded px-1 font-mono">{field.slug}</code>
- <Badge variant="outline" className={`text-xs ${typeColor}`}>
- {FIELD_TYPE_LABELS[field.field_type] ?? field.field_type}
- </Badge>
- {field.is_required && (
- <Badge variant="outline" className="text-xs border-red-500/40 text-red-400">Required</Badge>
- )}
- {field.is_unique && (
- <Badge variant="outline" className="text-xs border-amber-500/40 text-amber-400">Unique</Badge>
- )}
- {field.is_translatable && (
- <Badge variant="outline" className="text-xs border-violet-500/40 text-violet-400">i18n</Badge>
- )}
- {relationDetail && (
- <span className="text-xs text-blue-600 dark:text-blue-400/70">{relationDetail}</span>
- )}
- {relationStyle && (
- <Badge variant="outline" className="text-xs border-emerald-500/40 text-emerald-600">{relationStyle}</Badge>
- )}
- </div>
- </div>
-
- {canEdit && (
- <FieldActions
- fieldId={field.id}
- fieldName={field.name}
- fieldType={field.field_type}
- fieldOptions={field.options}
- fieldIsRequired={field.is_required}
- fieldIsUnique={field.is_unique}
- fieldIsTranslatable={field.is_translatable}
- sortOrder={field.sort_order}
- collectionId={collectionId}
- collectionSlug={collectionSlug}
- isFirst={index === 0}
- isLast={index === total - 1}
- allCollections={allCollections}
- showInGrid={field.show_in_grid}
- />
- )}
  </div>
  );
 }
