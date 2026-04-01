@@ -35,7 +35,7 @@ function resolveIcon(name: string | null): React.ComponentType<{ className?: str
   if (name) {
     const pascal = name.split("-").map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join("");
     const Comp = (LucideIcons as Record<string, unknown>)[pascal];
-    if (typeof Comp === "function") return Comp as React.ComponentType<{ className?: string }>;
+    if (Comp) return Comp as React.ComponentType<{ className?: string }>;
   }
   return Store;
 }
