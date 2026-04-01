@@ -28,6 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { TenantLanguage } from "@/types/translations";
+import type { FormLayout } from "@/types/form-layout";
 import type { ChildCollection, GrandchildData } from "@/app/actions/relations";
 import { fetchGrandchildData } from "@/app/actions/relations";
 import { GrandchildGrid } from "@/components/grandchild-grid";
@@ -224,6 +225,7 @@ export function ChildCollectionTabs({
                 catalogItems={activeChildCatalogItems}
                 parentCollectionSlug={parentCollectionSlug}
                 timezone={timezone}
+                formLayout={(activeChild.metadata?.form_layout ?? null) as FormLayout | null}
               />
             )}
           </div>
@@ -550,6 +552,7 @@ function AddChildDialog({
   catalogItems,
   parentCollectionSlug,
   timezone,
+  formLayout,
 }: {
   parentItemId: string;
   parentFieldSlug: string;
@@ -559,6 +562,7 @@ function AddChildDialog({
   catalogItems: CatalogItems;
   parentCollectionSlug: string;
   timezone: string;
+  formLayout?: FormLayout | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -640,6 +644,7 @@ function AddChildDialog({
               onChange={handleChange}
               catalogItems={catalogItems}
               collectionSlug={collectionSlug}
+              formLayout={formLayout}
             />
           </div>
 
