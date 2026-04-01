@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   const { data: catalog, error } = await db
     .from("content_catalogs")
     .select(`
-      id, slug, name, description, created_at, updated_at,
+      id, slug, name, description, created_at,
       content_catalog_items (
         id, value, label, sort_order, is_active
       )

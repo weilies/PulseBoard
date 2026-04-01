@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await db
     .from("content_catalogs")
-    .select("id, slug, name, description, created_at, updated_at")
+    .select("id, slug, name, description, created_at")
     .order("name", { ascending: true });
 
   if (error) return apiErr(error.message, 500);
