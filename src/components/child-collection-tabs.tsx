@@ -157,6 +157,8 @@ export function ChildCollectionTabs({
     if (f.slug === activeChild.fieldSlug) return false;
     // Hide file/json/richtext from grid
     if (["file", "richtext", "json"].includes(f.field_type)) return false;
+    // Respect show_in_grid setting
+    if (f.show_in_grid === false) return false;
     return true;
   });
 
