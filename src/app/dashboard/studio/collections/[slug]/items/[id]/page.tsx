@@ -14,6 +14,7 @@ import { resolveTimezone, formatDatetime, formatDate } from "@/lib/timezone";
 import { ChildCollectionTabs } from "@/components/child-collection-tabs";
 import { ParentItemHeader } from "@/components/parent-item-header";
 import type { Field, CatalogItems } from "@/components/item-form-dialog";
+import type { ParentRecordLayout } from "@/types/parent-record-layout";
 import { getTenantLanguages } from "@/lib/services/translations.service";
 
 type Collection = {
@@ -340,6 +341,9 @@ export default async function ItemDetailPage({
     childCanWriteMap[child.slug] = isSuperAdmin || creatableSet.has(child.id);
   }
 
+  // Extract parent record layout from metadata
+  const parentRecordLayout = (collection.metadata?.parent_record_layout ?? null) as ParentRecordLayout | null;
+
   return (
     <div className="p-6 space-y-6 max-w-6xl">
       {/* Back nav */}
@@ -366,6 +370,7 @@ export default async function ItemDetailPage({
         canWrite={canWrite}
         tenantLanguages={tenantLanguages ?? []}
         displayKeyFields={displayKeyFields}
+        parentLayout={parentRecordLayout}
       />
 
       {/* Child collection tabs — filtered by read permission */}

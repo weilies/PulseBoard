@@ -9,7 +9,9 @@ import Link from "next/link";
 import { getCollectionName, getCollectionDescription } from "@/lib/i18n";
 import { LANG_COOKIE } from "@/lib/constants";
 import { FormBuilder } from "@/components/form-builder";
+import { ParentRecordLayoutBuilder } from "@/components/parent-record-layout-builder";
 import type { FormLayout } from "@/types/form-layout";
+import type { ParentRecordLayout } from "@/types/parent-record-layout";
 import { resolveCollectionIcon } from "@/lib/icons";
 
 type Field = {
@@ -69,6 +71,7 @@ export default async function FormBuilderPage({
   const currentLocale = cookieStore.get(LANG_COOKIE)?.value ?? "en";
 
   const formLayout = (collection.metadata?.form_layout ?? null) as FormLayout | null;
+  const parentRecordLayout = (collection.metadata?.parent_record_layout ?? null) as ParentRecordLayout | null;
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -153,13 +156,40 @@ export default async function FormBuilderPage({
         </Link>
       </div>
 
-      {/* Form builder */}
-      <FormBuilder
-        collectionId={collection.id}
-        fields={fields.map((f) => ({ id: f.id, slug: f.slug, name: f.name, field_type: f.field_type }))}
-        initialLayout={formLayout}
-        canEdit={canEdit}
-      />
+      {/* Two-section layout: Detail & Parent Record */}
+      <div className="space-y-8">
+        {/* Detail Layout */}
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
+            Detail Form Layout
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Configure the layout of the Add/Edit form when displaying details for this record.
+          </p>
+          <FormBuilder
+            collectionId={collection.id}
+            fields={fields.map((f) => ({ id: f.id, slug: f.slug, name: f.name, field_type: f.field_type }))}
+            initialLayout={formLayout}
+            canEdit={canEdit}
+          />
+        </div>
+
+        {/* Parent Record Layout */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-8">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
+            Parent Record Layout
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Configure which fields to display when this record is shown as a parent item (responsive 3-column grid).
+          </p>
+          <ParentRecordLayoutBuilder
+            collectionId={collection.id}
+            fields={fields.map((f) => ({ id: f.id, slug: f.slug, name: f.name, field_type: f.field_type }))}
+            initialLayout={parentRecordLayout}
+            canEdit={canEdit}
+          />
+        </div>
+      </div>
   </div>
   );
 }

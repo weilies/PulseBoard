@@ -401,6 +401,37 @@ export async function saveFormLayout(
   return { data: true };
 }
 
+export async function saveParentRecordLayout(
+  collectionId: string,
+  layout: import("@/types/parent-record-layout").ParentRecordLayout
+) {
+  const user = await getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const supabase = await createClient();
+
+  const { data: col, error: fetchErr } = await supabase
+    .from("collections")
+    .select("metadata, slug")
+    .eq("id", collectionId)
+    .single();
+
+  if (fetchErr || !col) return { error: "Collection not found" };
+
+  const newMeta = { ...(col.metadata ?? {}), parent_record_layout: layout };
+
+  const { error } = await supabase
+    .from("collections")
+    .update({ metadata: newMeta })
+    .eq("id", collectionId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/dashboard/studio/collections/${col.slug}/form`);
+  revalidatePath(`/dashboard/studio/collections/${col.slug}/items`);
+  return { data: true };
+}
+
 export async function toggleFieldShowInGrid(fieldId: string, showInGrid: boolean) {
   const user = await getUser();
   if (!user) return { error: "Not authenticated" };
