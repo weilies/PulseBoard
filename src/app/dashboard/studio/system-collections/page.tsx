@@ -5,13 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { CreateCollectionDialog } from "@/components/create-collection-dialog";
 import { CollectionActions } from "@/components/collection-actions";
-import { Database, Settings } from "lucide-react";
+import { Database } from "lucide-react";
 import Link from "next/link";
 import { PAGE_SIZE, buildGridParams, type GridConfig } from "@/lib/data-grid";
 import { SortableHead } from "@/components/sortable-head";
 import { TablePagination } from "@/components/table-pagination";
 import { TableFilters, type FilterColumn } from "@/components/table-filters";
 import { Suspense } from "react";
+import { resolveCollectionIcon } from "@/lib/icons";
 
 type Collection = {
  id: string;
@@ -131,7 +132,10 @@ export default async function SystemCollectionsPage({
  href={`/dashboard/studio/collections/${c.slug}/items`}
  className="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
  >
- <Settings className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400/50 shrink-0" />
+ {(() => {
+   const Icon = resolveCollectionIcon(c.icon, true);
+   return <Icon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400/50 shrink-0" />;
+ })()}
  {c.name}
  </Link>
  </TableCell>

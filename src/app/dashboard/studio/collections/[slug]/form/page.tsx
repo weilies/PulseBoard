@@ -4,12 +4,13 @@ import { resolveTenant } from "@/lib/tenant";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { Badge } from "@/components/ui/badge";
-import { Database, Layers, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getCollectionName, getCollectionDescription } from "@/lib/i18n";
 import { LANG_COOKIE } from "@/lib/constants";
 import { FormBuilder } from "@/components/form-builder";
 import type { FormLayout } from "@/types/form-layout";
+import { resolveCollectionIcon } from "@/lib/icons";
 
 type Field = {
   id: string;
@@ -24,6 +25,7 @@ type Collection = {
   slug: string;
   name: string;
   description: string | null;
+  icon: string | null;
   type: string;
   metadata: Record<string, unknown> | null;
   collection_fields: Field[];
@@ -83,11 +85,10 @@ export default async function FormBuilderPage({
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 p-2">
-            {isSystem ? (
-              <Database className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            ) : (
-              <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            )}
+            {(() => {
+              const Icon = resolveCollectionIcon(collection.icon, isSystem);
+              return <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+            })()}
           </div>
           <div>
             <div className="flex items-center gap-2">

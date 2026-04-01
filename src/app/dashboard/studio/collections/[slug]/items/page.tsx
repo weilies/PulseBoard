@@ -20,8 +20,6 @@ import { ImportDialog } from "@/components/import-dialog";
 import {
  ArrowLeft,
  ChevronRight,
- Database,
- Layers,
 } from "lucide-react";
 import Link from "next/link";
 import { getChildCollections } from "@/app/actions/relations";
@@ -34,12 +32,14 @@ import { resolveTimezone, formatDatetime, formatDate } from "@/lib/timezone";
 import { PAGE_SIZE, buildGridParams, type GridConfig } from "@/lib/data-grid";
 import { SortableHead } from "@/components/sortable-head";
 import { TablePagination } from "@/components/table-pagination";
+import { resolveCollectionIcon } from "@/lib/icons";
 
 type Collection = {
  id: string;
  slug: string;
  name: string;
  description: string | null;
+ icon: string | null;
  type: string;
  metadata: Record<string, unknown> | null;
  collection_fields: Field[];
@@ -299,11 +299,10 @@ export default async function ItemsPage({
  <div className="flex items-center justify-between flex-wrap gap-3">
  <div className="flex items-center gap-3">
  <div className="rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 p-2">
- {isSystem ? (
- <Database className="h-4 w-4 text-blue-600 dark:text-blue-400" />
- ) : (
- <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
- )}
+ {(() => {
+   const Icon = resolveCollectionIcon(collection.icon, isSystem);
+   return <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+ })()}
  </div>
  <div>
  <div className="flex items-center gap-2">
