@@ -30,6 +30,8 @@ import { uploadCollectionFile, getSignedFileUrl } from "@/app/actions/storage";
 import { fetchRelationItems, type RelationItem } from "@/app/actions/relations";
 import type { TenantLanguage, LocaleTranslations } from "@/types/translations";
 import type { FormLayout, FormElement, FormElementField, FormElementTabGroup, FieldWidget } from "@/types/form-layout";
+import { filterCatalogItems, formatItemDisplay } from "@/lib/catalog-filtering";
+import type { CatalogItem, CatalogFieldOptions } from "@/types/catalog";
 import { getFieldLabel } from "@/lib/i18n";
 import { datetimeLocalToISO, isoToDatetimeLocal } from "@/lib/timezone-constants";
 
@@ -45,7 +47,7 @@ export type Field = {
  sort_order: number;
 };
 
-export type CatalogItems = Record<string, { value: string; label: string }[]>;
+export type CatalogItems = Record<string, (CatalogItem | { value: string; label: string })[]>;
 type ItemData = Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
@@ -358,6 +360,7 @@ function LayoutFormFields({
           collectionSlug={collectionSlug}
           catalogItems={catalogItems}
           widget={el.widget}
+          parentRecord={values}
          />
         </div>
        );
@@ -442,6 +445,7 @@ function LayoutFormFields({
          onChange={onChange}
          collectionSlug={collectionSlug}
          catalogItems={catalogItems}
+         parentRecord={values}
         />
        </div>
       );
@@ -526,6 +530,7 @@ function NestedTabGroup({
           collectionSlug={collectionSlug}
           catalogItems={catalogItems}
           widget={el.widget}
+          parentRecord={values}
          />
         </div>
        );
@@ -560,6 +565,7 @@ function FieldInputControl({
  collectionSlug,
  catalogItems,
  widget,
+ parentRecord,
 }: {
  field: Field;
  value: unknown;
@@ -568,6 +574,7 @@ function FieldInputControl({
  collectionSlug: string;
  catalogItems: CatalogItems;
  widget?: FieldWidget;
+ parentRecord?: ItemData;
 }) {
  // Resolve effective widget for text/richtext fields
  const effectiveWidget = widget ?? "auto";
@@ -638,43 +645,83 @@ function FieldInputControl({
    )}
    {field.field_type === "select" && (() => {
     const listSlug = opts.catalog_slug as string | undefined;
-    const choices: { value: string; label: string }[] = listSlug
+    const fieldOpts = opts as unknown as CatalogFieldOptions | undefined;
+    let choices: (CatalogItem | { value: string; label: string })[] = listSlug
      ? (catalogItems[listSlug] ?? [])
      : ((opts.choices as string[]) ?? []).map((c) => ({ value: c, label: c }));
+
+    // Apply filter conditions if present
+    if (listSlug && fieldOpts?.filter_conditions && fieldOpts.filter_conditions.length > 0 && parentRecord) {
+     choices = filterCatalogItems(
+      choices as CatalogItem[],
+      parentRecord,
+      fieldOpts.filter_conditions
+     );
+    }
+
+    // Determine which columns to display
+    const displayColumns = fieldOpts?.display_columns || ["label"];
+
     return (
      <Select value={(value as string) ?? ""} onValueChange={(v) => onChange(field.slug, v ?? "")}>
       <SelectTrigger className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
        <SelectValue placeholder="Select..." />
       </SelectTrigger>
       <SelectContent className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-       {choices.map((c) => (<SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>))}
+       {choices.length === 0 ? (
+        <div className="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400">No matching options</div>
+       ) : (
+        choices.map((c) => {
+         const isCatalogItem = 'id' in c && 'catalog_id' in c;
+         const displayText = isCatalogItem ? formatItemDisplay(c as CatalogItem, displayColumns) : (c as { value: string; label: string }).label;
+         return <SelectItem key={c.value} value={c.value}>{displayText}</SelectItem>;
+        })
+       )}
       </SelectContent>
      </Select>
     );
    })()}
    {field.field_type === "multiselect" && (() => {
     const listSlug = opts.catalog_slug as string | undefined;
-    const choices: { value: string; label: string }[] = listSlug
+    const fieldOpts = opts as unknown as CatalogFieldOptions | undefined;
+    let choices: (CatalogItem | { value: string; label: string })[] = listSlug
      ? (catalogItems[listSlug] ?? [])
      : ((opts.choices as string[]) ?? []).map((c) => ({ value: c, label: c }));
+
+    // Apply filter conditions if present
+    if (listSlug && fieldOpts?.filter_conditions && fieldOpts.filter_conditions.length > 0 && parentRecord) {
+     choices = filterCatalogItems(
+      choices as CatalogItem[],
+      parentRecord,
+      fieldOpts.filter_conditions
+     );
+    }
+
+    // Determine which columns to display
+    const displayColumns = fieldOpts?.display_columns || ["label"];
+
     const selected = (value as string[]) ?? [];
     return (
      <div className="flex flex-wrap gap-3 rounded-lg border border-zinc-700/50 bg-zinc-800/20 p-3">
-      {choices.length === 0 && <p className="text-xs text-zinc-500">No choices defined.</p>}
-      {choices.map((c) => (
-       <label key={c.value} className="flex items-center gap-1.5 cursor-pointer">
-        <input
-         type="checkbox"
-         checked={selected.includes(c.value)}
-         onChange={(e) => {
-          if (e.target.checked) onChange(field.slug, [...selected, c.value]);
-          else onChange(field.slug, selected.filter((v) => v !== c.value));
-         }}
-         className="accent-blue-400"
-        />
-        <span className="text-sm text-gray-900 dark:text-gray-100">{c.label}</span>
-       </label>
-      ))}
+      {choices.length === 0 && <p className="text-xs text-zinc-500">No matching options</p>}
+      {choices.map((c) => {
+       const isCatalogItem = 'id' in c && 'catalog_id' in c;
+       const displayText = isCatalogItem ? formatItemDisplay(c as CatalogItem, displayColumns) : (c as { value: string; label: string }).label;
+       return (
+        <label key={c.value} className="flex items-center gap-1.5 cursor-pointer">
+         <input
+          type="checkbox"
+          checked={selected.includes(c.value)}
+          onChange={(e) => {
+           if (e.target.checked) onChange(field.slug, [...selected, c.value]);
+           else onChange(field.slug, selected.filter((v) => v !== c.value));
+          }}
+          className="accent-blue-400"
+         />
+         <span className="text-sm text-gray-900 dark:text-gray-100">{displayText}</span>
+        </label>
+       );
+      })}
      </div>
     );
    })()}
@@ -842,9 +889,23 @@ export function ItemFormFields({
 
  {field.field_type === "select" && (() => {
  const listSlug = opts.catalog_slug as string | undefined;
- const choices: { value: string; label: string }[] = listSlug
+ const fieldOpts = opts as unknown as CatalogFieldOptions | undefined;
+ let choices: (CatalogItem | { value: string; label: string })[] = listSlug
  ? (catalogItems[listSlug] ?? [])
  : ((opts.choices as string[]) ?? []).map((c) => ({ value: c, label: c }));
+
+ // Apply filter conditions if present
+ if (listSlug && fieldOpts?.filter_conditions && fieldOpts.filter_conditions.length > 0) {
+  choices = filterCatalogItems(
+   choices as CatalogItem[],
+   values,
+   fieldOpts.filter_conditions
+  );
+ }
+
+ // Determine which columns to display
+ const displayColumns = fieldOpts?.display_columns || ["label"];
+
  return (
  <Select
  value={(value as string) ?? ""}
@@ -854,11 +915,15 @@ export function ItemFormFields({
  <SelectValue placeholder="Select..." />
  </SelectTrigger>
  <SelectContent className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
- {choices.map((c) => (
- <SelectItem key={c.value} value={c.value}>
- {c.label}
- </SelectItem>
- ))}
+ {choices.length === 0 ? (
+  <div className="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400">No matching options</div>
+ ) : (
+  choices.map((c) => {
+   const isCatalogItem = 'id' in c && 'catalog_id' in c;
+   const displayText = isCatalogItem ? formatItemDisplay(c as CatalogItem, displayColumns) : (c as { value: string; label: string }).label;
+   return <SelectItem key={c.value} value={c.value}>{displayText}</SelectItem>;
+  })
+ )}
  </SelectContent>
  </Select>
  );
@@ -866,32 +931,50 @@ export function ItemFormFields({
 
  {field.field_type === "multiselect" && (() => {
  const listSlug = opts.catalog_slug as string | undefined;
- const choices: { value: string; label: string }[] = listSlug
+ const fieldOpts = opts as unknown as CatalogFieldOptions | undefined;
+ let choices: (CatalogItem | { value: string; label: string })[] = listSlug
  ? (catalogItems[listSlug] ?? [])
  : ((opts.choices as string[]) ?? []).map((c) => ({ value: c, label: c }));
+
+ // Apply filter conditions if present
+ if (listSlug && fieldOpts?.filter_conditions && fieldOpts.filter_conditions.length > 0) {
+  choices = filterCatalogItems(
+   choices as CatalogItem[],
+   values,
+   fieldOpts.filter_conditions
+  );
+ }
+
+ // Determine which columns to display
+ const displayColumns = fieldOpts?.display_columns || ["label"];
+
  const selected = (value as string[]) ?? [];
  return (
  <div className="flex flex-wrap gap-3 rounded-lg border border-zinc-700/50 bg-zinc-800/20 p-3">
  {choices.length === 0 && (
- <p className="text-xs text-zinc-500">No choices defined.</p>
+  <p className="text-xs text-zinc-500">No matching options</p>
  )}
- {choices.map((c) => (
- <label key={c.value} className="flex items-center gap-1.5 cursor-pointer">
- <input
- type="checkbox"
- checked={selected.includes(c.value)}
- onChange={(e) => {
- if (e.target.checked) {
- onChange(field.slug, [...selected, c.value]);
- } else {
- onChange(field.slug, selected.filter((v) => v !== c.value));
- }
- }}
- className="accent-blue-400"
- />
- <span className="text-sm text-gray-900 dark:text-gray-100">{c.label}</span>
- </label>
- ))}
+ {choices.map((c) => {
+  const isCatalogItem = 'id' in c && 'catalog_id' in c;
+  const displayText = isCatalogItem ? formatItemDisplay(c as CatalogItem, displayColumns) : (c as { value: string; label: string }).label;
+  return (
+   <label key={c.value} className="flex items-center gap-1.5 cursor-pointer">
+    <input
+     type="checkbox"
+     checked={selected.includes(c.value)}
+     onChange={(e) => {
+      if (e.target.checked) {
+       onChange(field.slug, [...selected, c.value]);
+      } else {
+       onChange(field.slug, selected.filter((v) => v !== c.value));
+      }
+     }}
+     className="accent-blue-400"
+    />
+    <span className="text-sm text-gray-900 dark:text-gray-100">{displayText}</span>
+   </label>
+  );
+ })}
  </div>
  );
  })()}
