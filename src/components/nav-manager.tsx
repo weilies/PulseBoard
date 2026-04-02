@@ -127,6 +127,17 @@ export function NavManager({ initialFolders, initialItems, allCollections }: Nav
  );
  const availableCollections = allCollections.filter((c) => !navCollectionIds.has(c.id));
 
+ // ---- sibling position helpers ----
+ const getFolderSiblings = (parentId: string | null) => {
+ const siblings = initialFolders.filter(f => f.parent_id === parentId);
+ return siblings.sort((a, b) => a.sort_order - b.sort_order);
+ };
+
+ const getFolderPosition = (folderId: string, parentId: string | null) => {
+ const siblings = getFolderSiblings(parentId);
+ return siblings.findIndex(f => f.id === folderId);
+ };
+
  // ---- helpers ----
  function refresh() {
  router.refresh();
