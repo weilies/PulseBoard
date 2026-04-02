@@ -312,6 +312,11 @@ export function NavManager({ initialFolders, initialItems, allCollections }: Nav
  const isEditing = editingFolderId === folder.id;
  const isCreatingChild = creatingFolderParentId === folder.id;
 
+ const currentIndex = getFolderPosition(folder.id, folder.parent_id);
+ const siblings = getFolderSiblings(folder.parent_id);
+ const isFirstSibling = currentIndex === 0;
+ const isLastSibling = currentIndex === siblings.length - 1;
+
  return (
  <div key={folder.id} className={cn(depth > 0 && "ml-4")}>
  {/* Folder header */}
@@ -366,6 +371,22 @@ export function NavManager({ initialFolders, initialItems, allCollections }: Nav
  className="p-0.5 text-gray-500 dark:text-gray-400 hover:text-red-400 rounded"
  title="Delete"
  ><Trash2 className="h-3 w-3" /></button>
+ {!isFirstSibling && (
+ <button
+ onClick={() => handleMoveFolder(folder.id, folder.parent_id, 'up')}
+ disabled={isPending}
+ className="p-0.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded transition-colors"
+ title="Move folder up"
+ ><ChevronUp className="h-4 w-4" /></button>
+ )}
+ {!isLastSibling && (
+ <button
+ onClick={() => handleMoveFolder(folder.id, folder.parent_id, 'down')}
+ disabled={isPending}
+ className="p-0.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded transition-colors"
+ title="Move folder down"
+ ><ChevronDown className="h-4 w-4" /></button>
+ )}
  </div>
  )}
  </div>
