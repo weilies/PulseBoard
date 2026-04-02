@@ -183,8 +183,8 @@ export function ChildCollectionTabs({
 
   return (
     <div className="space-y-4">
-      {/* Tab bar */}
-      <div className="flex gap-0 border-b border-gray-200 dark:border-gray-700">
+      {/* Tab bar — responsive with wrapping on mobile */}
+      <div className="flex flex-wrap gap-0 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
         {childCollections.map((child) => {
           const isActive = child.slug === activeTab;
           const count = childCounts[child.slug] ?? 0;
@@ -192,14 +192,14 @@ export function ChildCollectionTabs({
             <Link
               key={child.slug}
               href={`${basePath}?child_tab=${child.slug}&child_page=1`}
-              className={`px-4 py-2 text-sm transition-colors flex items-center gap-1.5 ${
+              className={`px-2 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap transition-colors flex items-center gap-1 sm:gap-1.5 flex-shrink-0 ${
                 isActive
                   ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-400 font-medium"
                   : "text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
               }`}
             >
               {child.name}
-              <span className={`rounded-full px-1.5 py-0.5 text-xs ${
+              <span className={`rounded-full px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-xs flex-shrink-0 ${
                 isActive ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
               }`}>
                 {count}
