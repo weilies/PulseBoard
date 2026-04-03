@@ -94,10 +94,10 @@ async function fetchAllCollections(
 
   const results = await Promise.all(
     collections.map(async (col) => {
-      // First get collection metadata to determine type
+      // First get collection metadata to determine type + field types for password masking
       const { data: colMeta } = await db
         .from("collections")
-        .select("id, type, tenant_id")
+        .select("id, type, tenant_id, collection_fields(slug, field_type)")
         .eq("id", col.id)
         .single();
 
@@ -122,7 +122,14 @@ async function fetchAllCollections(
 
       const { data: items } = await query;
 
-      // Flatten: prefix each data field with alias
+      // Build set of password field slugs for this collection
+      const passwordSlugs = new Set(
+        ((colMeta.collection_fields ?? []) as { slug: string; field_type: string }[])
+          .filter((f) => f.field_type === "password")
+          .map((f) => f.slug)
+      );
+
+      // Flatten: prefix each data field with alias; mask password fields
       const rows = (items ?? []).map((item) => {
         const row: Row = {};
         row[`${col.alias}._id`] = item.id;
@@ -130,7 +137,7 @@ async function fetchAllCollections(
         row[`${col.alias}._updated_at`] = item.updated_at;
         const data = (item.data ?? {}) as Record<string, unknown>;
         for (const [key, val] of Object.entries(data)) {
-          row[`${col.alias}.${key}`] = val;
+          row[`${col.alias}.${key}`] = passwordSlugs.has(key) ? "****" : val;
         }
         return row;
       });

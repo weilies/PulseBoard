@@ -43,11 +43,13 @@ export async function GET() {
     slug: c.slug,
     name: c.name,
     type: c.type,
-    fields: (c.collection_fields ?? []).map((f: { slug: string; name: string; field_type: string }) => ({
-      slug: f.slug,
-      name: f.name,
-      field_type: f.field_type,
-    })),
+    fields: (c.collection_fields ?? [])
+      .filter((f: { slug: string; name: string; field_type: string }) => f.field_type !== "password")
+      .map((f: { slug: string; name: string; field_type: string }) => ({
+        slug: f.slug,
+        name: f.name,
+        field_type: f.field_type,
+      })),
   }));
 
   return Response.json({ data: result });
