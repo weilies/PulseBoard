@@ -35,6 +35,7 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   richtext: "Rich Text",
   json: "JSON",
   relation: "Relation",
+  password: "Password / Secret",
 };
 
 function genId() {

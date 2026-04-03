@@ -584,6 +584,21 @@ function FieldInputControl({
 
  return (
   <>
+   {field.field_type === "password" && (
+    <div className="space-y-1">
+     <Input
+      type="password"
+      autoComplete="new-password"
+      placeholder="Enter new value to update"
+      value={(value as string) ?? ""}
+      onChange={(e) => onChange(field.slug, e.target.value)}
+      className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500/50 dark:placeholder:text-gray-400/50"
+     />
+     <p className="text-[11px] text-gray-500 dark:text-gray-400">
+      Leave blank to keep existing value unchanged.
+     </p>
+    </div>
+   )}
    {field.field_type === "text" && !useTextarea && (
     <Input
      value={(value as string) ?? ""}
@@ -1192,9 +1207,13 @@ export function EditItemDialog({
  if (!open) return;
  const initData = { ...(item.data ?? {}) };
  // Convert stored UTC ISO datetime values → datetime-local format for the input
+ // Strip password fields — they are write-only and must never be pre-populated
  for (const field of fields) {
  if (field.field_type === "datetime" && initData[field.slug]) {
  initData[field.slug] = isoToDatetimeLocal(initData[field.slug] as string, timezone);
+ }
+ if (field.field_type === "password") {
+ delete initData[field.slug];
  }
  }
  setFormValues(initData);
@@ -1239,10 +1258,14 @@ export function EditItemDialog({
 
  // 1. Save canonical data (always — non-translatable fields may have changed)
  // Normalize datetime fields back to UTC ISO before saving
+ // Strip empty password fields — empty means "no change"
  const normalizedData = { ...formValues };
  for (const field of fields) {
  if (field.field_type === "datetime" && normalizedData[field.slug]) {
  normalizedData[field.slug] = datetimeLocalToISO(normalizedData[field.slug] as string, timezone);
+ }
+ if (field.field_type === "password" && (normalizedData[field.slug] === "" || normalizedData[field.slug] === undefined)) {
+ delete normalizedData[field.slug];
  }
  }
 
