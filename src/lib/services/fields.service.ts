@@ -3,7 +3,7 @@ import { slugify, generateUniqueSlug } from "./slugify";
 
 const VALID_FIELD_TYPES = [
   "text", "number", "date", "datetime", "boolean", "file",
-  "select", "multiselect", "richtext", "json", "relation",
+  "select", "multiselect", "richtext", "json", "relation", "password",
 ] as const;
 
 export async function createField(

@@ -48,6 +48,7 @@ const FIELD_TYPES = [
  { value: "richtext", label: "Rich Text" },
  { value: "json", label: "JSON" },
  { value: "relation", label: "Relation (link to another collection)" },
+ { value: "password", label: "Password / Secret (write-only)" },
 ];
 
 type SimpleCollection = { id: string; name: string; slug: string };
