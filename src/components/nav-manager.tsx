@@ -114,7 +114,7 @@ export function NavManager({ initialFolders, initialItems, allCollections }: Nav
  const [isCreatingRootFolder, setIsCreatingRootFolder] = useState(false);
 
  // ---- expanded folders ----
- const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set(initialFolders.map((f) => f.id)));
+ const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set());
 
  const { rootFolders, rootItems } = useMemo(
  () => buildNavTree(initialFolders, initialItems),
@@ -338,7 +338,8 @@ export function NavManager({ initialFolders, initialItems, allCollections }: Nav
  if (next.has(folder.id)) next.delete(folder.id); else next.add(folder.id);
  return next;
  })}
- className="flex items-center gap-1.5 flex-1 text-left"
+ className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
+ title={`ID: ${folder.id}`}
  >
  {isOpen ? <FolderOpen className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" /> : <Folder className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
  {isEditing ? (
@@ -350,7 +351,11 @@ export function NavManager({ initialFolders, initialItems, allCollections }: Nav
  ) : (
  <span className="text-gray-900 dark:text-gray-100 truncate flex-1">{folder.name}</span>
  )}
- {!isEditing && (isOpen ? <ChevronDown className="h-3 w-3 text-gray-500 dark:text-gray-400 ml-auto" /> : <ChevronRight className="h-3 w-3 text-gray-500 dark:text-gray-400 ml-auto" />)}
+ {!isEditing && (
+ <span className="ml-auto shrink-0">
+  {isOpen ? <ChevronDown className="h-3 w-3 text-gray-500 dark:text-gray-400" /> : <ChevronRight className="h-3 w-3 text-gray-500 dark:text-gray-400" />}
+ </span>
+ )}
  </button>
 
  {!isEditing && (
