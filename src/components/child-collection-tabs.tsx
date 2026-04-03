@@ -333,6 +333,7 @@ export function ChildCollectionTabs({
                         isExpanded={expandedRowId === item.id}
                         onToggleExpand={() => setExpandedRowId(expandedRowId === item.id ? null : item.id)}
                         totalColumns={displayFields.length + (activeChildCanWrite ? 3 : 2) + (hasGrandchildren ? 1 : 0)}
+                        formLayout={(activeChild.metadata?.form_layout ?? null) as FormLayout | null}
                       />
                     );
                   })
@@ -396,6 +397,7 @@ function ChildRow({
   isExpanded,
   onToggleExpand,
   totalColumns,
+  formLayout,
 }: {
   item: Item;
   index: number;
@@ -417,6 +419,7 @@ function ChildRow({
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   totalColumns?: number;
+  formLayout?: FormLayout | null;
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -562,6 +565,7 @@ function ChildRow({
           tenantLanguages={tenantLanguages}
           currentLocale={currentLocale}
           timezone={timezone}
+          formLayout={formLayout}
           onDeleteRequest={() => { setEditOpen(false); setDeleteOpen(true); }}
         />
       )}
@@ -704,7 +708,7 @@ function AddChildDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-gray-300 text-gray-500 hover:bg-gray-100 hover:text-blue-600"
+                  className="border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
                   onClick={() => setFormValues({})}
                 />
               }
@@ -714,7 +718,7 @@ function AddChildDialog({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-blue-50 border border-blue-500/40 text-blue-600 hover:bg-blue-500/30"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {loading ? "Creating..." : "Create"}
             </Button>

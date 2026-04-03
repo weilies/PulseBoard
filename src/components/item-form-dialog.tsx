@@ -882,6 +882,20 @@ export function ItemFormFields({
  )}
  </Label>
 
+ {field.field_type === "password" && (
+ <div className="space-y-1">
+  <Input
+  type="password"
+  autoComplete="new-password"
+  placeholder="Enter new value to update"
+  value={(value as string) ?? ""}
+  onChange={(e) => onChange(field.slug, e.target.value)}
+  className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500/50 dark:placeholder:text-gray-400/50"
+  />
+  <p className="text-[11px] text-gray-500 dark:text-gray-400">Leave blank to keep existing value unchanged.</p>
+ </div>
+ )}
+
  {field.field_type === "text" && (
  <Input
  value={(value as string) ?? ""}
@@ -1188,7 +1202,7 @@ export function CreateItemDialog({
  <Button
  type="submit"
  disabled={loading}
- className="bg-blue-50 dark:bg-blue-950 border border-blue-500/40 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30 hover:text-[#a8c4ff]"
+ className="bg-blue-600 hover:bg-blue-700 text-white"
  >
  {loading ? "Creating..." : "Create Item"}
  </Button>
@@ -1386,7 +1400,7 @@ export function EditItemDialog({
  <DialogFooter className="mt-6">
  <div className="flex w-full items-center justify-between">
  {onDeleteRequest ? (
- <Button type="button" variant="outline" size="sm" className="text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300" onClick={onDeleteRequest}>
+ <Button type="button" variant="outline" size="sm" className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10" onClick={onDeleteRequest}>
  Delete
  </Button>
  ) : <span />}
@@ -1396,7 +1410,7 @@ export function EditItemDialog({
  <Button
  type="button"
  variant="outline"
- className="border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 dark:text-blue-400"
+ className="border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
  />
  }
  >
@@ -1405,7 +1419,7 @@ export function EditItemDialog({
  <Button
  type="submit"
  disabled={loading || translationsLoading}
- className="bg-blue-50 dark:bg-blue-950 border border-blue-500/40 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30 hover:text-[#a8c4ff]"
+ className="bg-blue-600 hover:bg-blue-700 text-white"
  >
  {loading ? "Saving..." : "Save Changes"}
  </Button>
