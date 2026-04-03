@@ -29,7 +29,7 @@ import { getItemTranslations, upsertItemTranslations } from "@/app/actions/trans
 import { uploadCollectionFile, getSignedFileUrl } from "@/app/actions/storage";
 import { fetchRelationItems, type RelationItem } from "@/app/actions/relations";
 import type { TenantLanguage, LocaleTranslations } from "@/types/translations";
-import type { FormLayout, FormElement, FormElementField, FormElementTabGroup, FieldWidget } from "@/types/form-layout";
+import type { FormLayout, FormElement, FormElementField, FormElementTabGroup, FormElementColumnGroup, FieldWidget } from "@/types/form-layout";
 import { filterCatalogItems, formatItemDisplay } from "@/lib/catalog-filtering";
 import type { CatalogItem, CatalogFieldOptions } from "@/types/catalog";
 import { getFieldLabel } from "@/lib/i18n";
@@ -297,6 +297,7 @@ function LayoutFormFields({
   return elements.flatMap((el) => {
    if (el.type === "field") return [el.fieldSlug];
    if (el.type === "tab-group") return el.tabs.flatMap((t) => collectPlacedSlugs(t.elements));
+   if (el.type === "column-group") return el.slots.flatMap((slot) => slot.map((s) => s.fieldSlug));
    return [];
   });
  }
@@ -416,6 +417,46 @@ function LayoutFormFields({
           currentLocale={currentLocale}
           fieldMap={fieldMap}
          />
+        </div>
+       );
+      }
+
+      if (el.type === "column-group") {
+       return (
+        <div key={idx} className="col-span-2">
+         <div className={`grid gap-x-4 gap-y-4 ${el.columns === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+          {el.slots.flatMap((slot, colIdx) =>
+           slot.map((slotEl, slotIdx) => {
+            const field = fieldMap.get(slotEl.fieldSlug);
+            if (!field) return null;
+            const value = values[field.slug];
+            const opts = field.options ?? {};
+            return (
+             <div key={`${colIdx}-${slotIdx}`} className="space-y-2">
+              <Label className="text-gray-900 dark:text-gray-100">
+               {getFieldLabel(field, currentLocale)}
+               {field.is_required && <span className="text-red-400 ml-1">*</span>}
+               {field.is_translatable && (
+                <span className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-violet-400/70">
+                 <Globe className="h-3 w-3" />
+                </span>
+               )}
+              </Label>
+              <FieldInputControl
+               field={field}
+               value={value}
+               opts={opts}
+               onChange={onChange}
+               collectionSlug={collectionSlug}
+               catalogItems={catalogItems}
+               widget={slotEl.widget}
+               parentRecord={values}
+              />
+             </div>
+            );
+           })
+          )}
+         </div>
         </div>
        );
       }
