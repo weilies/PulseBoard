@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Building2, FlaskConical, Database,
-  BookOpen, Layers, ChevronDown, Shield, FileKey, Folder, FolderOpen,
+  BookOpen, Layers, ChevronDown, ChevronLeft, ChevronRight, Shield, FileKey, Folder, FolderOpen,
   Boxes, Box, Map, Lock, KeyRound, Workflow, Plug2, Webhook, ScrollText, Store,
 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
@@ -59,6 +59,8 @@ interface SidebarProps {
   rootItems: NavItem[];
   collectionMap: Map<string, CollectionInfo>;
   onNavigate?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -239,7 +241,7 @@ function SubNavLink({
 // Main Sidebar
 // ---------------------------------------------------------------------------
 
-export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap, onNavigate }: SidebarProps) {
+export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap, onNavigate, collapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
 
   const pageSet = new Set(accessiblePages);
@@ -276,16 +278,20 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
   const hasCollections = rootCollectionItems.length > 0 || rootFolders.length > 0;
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 dark:bg-gray-900">
+    <aside className={cn("flex h-full flex-col border-r bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 dark:bg-gray-900 transition-all duration-200 overflow-hidden", collapsed ? "w-14" : "w-64")}>
       {/* Logo */}
-      <div className="flex h-14 items-center border-b border-gray-200 dark:border-gray-700 px-4">
-        <Link
-          href="/dashboard"
-          onClick={onNavigate}
-          className="text-lg font-bold text-blue-600 dark:text-blue-400 tracking-tight"
-        >
-          PulseBox
-        </Link>
+      <div className="flex h-14 items-center border-b border-gray-200 dark:border-gray-700 px-4 justify-between">
+        {collapsed ? (
+          <span className="text-lg font-bold text-blue-600 dark:text-blue-400 mx-auto">P</span>
+        ) : (
+          <Link
+            href="/dashboard"
+            onClick={onNavigate}
+            className="text-lg font-bold text-blue-600 dark:text-blue-400 tracking-tight"
+          >
+            PulseBox
+          </Link>
+        )}
       </div>
 
       {/* Navigation */}
@@ -474,11 +480,24 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
         )}
       </nav>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-700">
-        <div className="text-xs text-gray-400 dark:text-gray-400 text-center" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
-          v1.0 Quantum
-        </div>
+      {/* Footer + collapse toggle */}
+      <div className="border-t border-gray-200 dark:border-gray-700">
+        {onToggleCollapse && (
+          <div className="flex justify-center p-2">
+            <button
+              onClick={onToggleCollapse}
+              className="flex items-center justify-center h-8 w-8 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </button>
+          </div>
+        )}
+        {!collapsed && (
+          <div className="px-3 pb-3 text-xs text-gray-400 dark:text-gray-400 text-center" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
+            v1.0 Quantum
+          </div>
+        )}
       </div>
     </aside>
   );

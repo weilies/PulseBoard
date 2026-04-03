@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -35,6 +35,20 @@ export function DashboardShell({
  children,
 }: DashboardShellProps) {
  const [mobileOpen, setMobileOpen] = useState(false);
+ const [collapsed, setCollapsed] = useState(false);
+
+ useEffect(() => {
+  const stored = localStorage.getItem("pb-sidebar-collapsed");
+  if (stored === "true") setCollapsed(true);
+ }, []);
+
+ function toggleCollapsed() {
+  setCollapsed((prev) => {
+   const next = !prev;
+   localStorage.setItem("pb-sidebar-collapsed", String(next));
+   return next;
+  });
+ }
 
  return (
  <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-950">
@@ -45,6 +59,8 @@ export function DashboardShell({
  rootFolders={rootFolders}
  rootItems={rootItems}
  collectionMap={collectionMap}
+ collapsed={collapsed}
+ onToggleCollapse={toggleCollapsed}
  />
  </div>
 
