@@ -184,6 +184,7 @@ export async function updatePolicyPermissions(
       resource_type: "page" | "collection";
       resource_id: string;
       permissions: Record<string, boolean>;
+      conditions?: unknown[];
     }>;
   }
 ) {
@@ -195,7 +196,13 @@ export async function updatePolicyPermissions(
   if (permissions.length > 0) {
     const { error } = await supabase
       .from("policy_permissions")
-      .insert(permissions.map((p) => ({ ...p, policy_id: policyId })));
+      .insert(permissions.map((p) => ({
+        policy_id: policyId,
+        resource_type: p.resource_type,
+        resource_id: p.resource_id,
+        permissions: p.permissions,
+        ...(p.resource_type === "collection" ? { conditions: p.conditions ?? [] } : {}),
+      })));
     if (error) return { error: error.message };
   }
 

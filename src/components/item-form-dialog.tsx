@@ -1229,6 +1229,7 @@ interface EditItemDialogProps {
  currentLocale?: string;
  timezone?: string;
  onDeleteRequest?: () => void;
+ onSaved?: () => void;
  formLayout?: FormLayout | null;
 }
 
@@ -1244,6 +1245,7 @@ export function EditItemDialog({
  currentLocale = "en",
  timezone = "Asia/Singapore",
  onDeleteRequest,
+ onSaved,
  formLayout,
 }: EditItemDialogProps) {
  const router = useRouter();
@@ -1349,7 +1351,8 @@ export function EditItemDialog({
  setLoading(false);
  toast.success("Item updated");
  onOpenChange(false);
- router.refresh();
+ if (onSaved) onSaved();
+ else router.refresh();
  }
 
  return (

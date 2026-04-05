@@ -182,24 +182,117 @@ export async function updateItem(
   return { data: true };
 }
 
+/**
+ * Find all child items that reference the given parent item, across all collections
+ * that have a relation field pointing to parentCollectionId.
+ */
+async function findChildRefs(
+  db: ReturnType<typeof createAdminClient>,
+  parentCollectionId: string,
+  parentItemId: string
+): Promise<{ collectionId: string; fieldSlug: string; itemId: string }[]> {
+  const { data: relationFields } = await db
+    .from("collection_fields")
+    .select("collection_id, slug, options")
+    .eq("field_type", "relation");
+
+  const childRefs: { collectionId: string; fieldSlug: string; itemId: string }[] = [];
+
+  for (const rf of relationFields ?? []) {
+    const opts = (rf.options ?? {}) as Record<string, unknown>;
+    if (opts.related_collection_id !== parentCollectionId) continue;
+
+    // Correct PostgREST JSONB filter syntax: data->>fieldSlug (no quotes around key)
+    const { data: childItems } = await db
+      .from("collection_items")
+      .select("id")
+      .eq("collection_id", rf.collection_id)
+      .eq(`data->>${rf.slug}`, parentItemId);
+
+    for (const ci of childItems ?? []) {
+      childRefs.push({ collectionId: rf.collection_id, fieldSlug: rf.slug, itemId: ci.id as string });
+    }
+  }
+
+  return childRefs;
+}
+
 export async function deleteItem(
   supabase: SupabaseClient,
   itemId: string,
   tenantId?: string
-) {
-  const resolved = await lookupItemWithCollection(itemId);
-  // Proceed even if lookup fails — still delete, just skip webhooks
-  const col = resolved?.col ?? null;
-  const deletedItem = resolved?.item ?? null;
+): Promise<{ data: true } | { error: string }> {
+  const db = createAdminClient();
 
+  // Fetch item
+  const { data: item } = await db
+    .from("collection_items")
+    .select("id, collection_id, data, created_at, updated_at")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  if (!item) return { data: true }; // already gone
+
+  const col = await lookupCollection(item.collection_id as string);
+  if (!col) return { error: "Collection not found" };
+
+  // Read cascade rule from THIS collection's metadata
+  const { data: fullCollection } = await db
+    .from("collections")
+    .select("metadata")
+    .eq("id", col.id)
+    .maybeSingle();
+
+  const cascadeRules = ((fullCollection?.metadata as Record<string, unknown>)?.cascade_rules ?? {}) as { on_parent_delete?: string };
+  const cascadeAction = cascadeRules.on_parent_delete ?? "restrict";
+
+  // Find all child items referencing this item
+  const childRefs = await findChildRefs(db, col.id, itemId);
+  const hasChildren = childRefs.length > 0;
+
+  if (cascadeAction === "restrict" && hasChildren) {
+    return {
+      error: `Cannot delete: child records exist. Change the "On Delete" setting to allow deletion.`,
+    };
+  }
+
+  if (cascadeAction === "cascade" && hasChildren) {
+    // Recursively delete each child — their own cascade rules apply to grandchildren
+    for (const ref of childRefs) {
+      const result = await deleteItem(supabase, ref.itemId, tenantId);
+      if ("error" in result) return result;
+    }
+  }
+
+  if (cascadeAction === "nullify" && hasChildren) {
+    for (const ref of childRefs) {
+      const { data: childItem } = await db
+        .from("collection_items")
+        .select("data")
+        .eq("id", ref.itemId)
+        .single();
+
+      if (childItem) {
+        const updatedData = { ...(childItem.data as Record<string, unknown>) };
+        delete updatedData[ref.fieldSlug];
+        await supabase
+          .from("collection_items")
+          .update({ data: updatedData })
+          .eq("id", ref.itemId);
+      }
+    }
+  }
+
+  // Delete the item itself
   const { error } = await supabase.from("collection_items").delete().eq("id", itemId);
   if (error) return { error: error.message };
 
-  // Non-blocking post-delete
-  if (col && tenantId && deletedItem) {
+  // Non-blocking post-delete webhooks
+  if (tenantId) {
+    const snapshot = item as Record<string, unknown>;
     after(() => {
-      fireWebhooks(tenantId, col.slug, "item.deleted", deletedItem);
-      firePostSaveWebhooks(tenantId, col.slug, "delete", deletedItem, itemId);
+      fireWebhooks(tenantId, col.slug, "item.deleted", snapshot);
+      firePostSaveWebhooks(tenantId, col.slug, "delete", snapshot, itemId);
     });
   }
 

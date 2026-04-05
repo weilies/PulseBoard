@@ -94,12 +94,12 @@ export default async function ItemDetailPage({
   if (catalogSlugs.length > 0) {
     const { data: catalogs } = await supabase
       .from("content_catalogs")
-      .select("slug, content_catalog_items(value, label, sort_order)")
+      .select("slug, content_catalog_items(value, label, sort_order, data)")
       .in("slug", catalogSlugs);
 
     for (const catalog of catalogs ?? []) {
       catalogItems[catalog.slug] = (
-        (catalog.content_catalog_items as { value: string; label: string; sort_order: number }[]) ?? []
+        (catalog.content_catalog_items as { value: string; label: string; sort_order: number; data?: Record<string, unknown> }[]) ?? []
       ).sort((a, b) => a.sort_order - b.sort_order);
     }
   }

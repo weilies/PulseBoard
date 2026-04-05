@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Building2, FlaskConical, Database,
   BookOpen, Layers, ChevronDown, ChevronLeft, ChevronRight, Shield, FileKey, Folder, FolderOpen,
-  Boxes, Box, Map, Lock, KeyRound, Workflow, Plug2, Webhook, ScrollText, Store,
+  Boxes, Box, Map, Lock, KeyRound, Workflow, Plug2, Webhook, ScrollText, Store, Settings2,
 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 
@@ -37,14 +37,16 @@ const PAGE_CONFIG: Record<string, { href: string; label: string; Icon: React.Com
   "studio.tenant-collections": { href: "/dashboard/studio/tenant-collections", label: "Tenant Collections", Icon: Layers },
   "studio.queries": { href: "/dashboard/studio/queries", label: "Query Generator", Icon: Workflow },
   "studio.app-store": { href: "/dashboard/studio/app-store", label: "App Store", Icon: Store },
+  "studio.automata": { href: "/dashboard/studio/automata", label: "Automata", Icon: Workflow },
+  "admin.platform-apps": { href: "/dashboard/admin/apps", label: "Platform Apps", Icon: Settings2 },
   "roles": { href: "/dashboard/roles", label: "Roles", Icon: Shield },
   "policies": { href: "/dashboard/policies", label: "Policies", Icon: FileKey },
-  "apps": { href: "/dashboard/apps", label: "Applications", Icon: KeyRound },
+  "apps": { href: "/dashboard/apps", label: "API Access", Icon: KeyRound },
   "webhooks": { href: "/dashboard/webhooks", label: "Webhooks", Icon: Webhook },
   "studio.logs": { href: "/dashboard/studio/logs", label: "Activity Log", Icon: ScrollText },
 };
 
-const STUDIO_PAGES = ["studio.system-collections", "studio.content-catalog", "studio.tenant-collections", "studio.queries", "studio.logs"];
+const STUDIO_PAGES = ["studio.system-collections", "studio.content-catalog", "studio.tenant-collections", "studio.queries", "studio.logs", "admin.platform-apps"];
 
 // Studio pages sorted alphabetically by label
 const STUDIO_PAGES_SORTED = [...STUDIO_PAGES].sort((a, b) =>
@@ -265,9 +267,9 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
   const studioActive = pathname.startsWith("/dashboard/studio");
   const [studioOpen, setStudioOpen] = useState(studioActive);
 
-  // Integration folder: Applications (apps), Webhooks, App Store
-  const hasIntegrationAccess = pageSet.has("apps") || pageSet.has("webhooks") || pageSet.has("studio.app-store");
-  const integrationActive = pathname.startsWith("/dashboard/apps") || pathname.startsWith("/dashboard/webhooks") || pathname.startsWith("/dashboard/studio/app-store");
+  // Integration folder: API Access (apps), App Store, Automata, Webhooks
+  const hasIntegrationAccess = pageSet.has("apps") || pageSet.has("webhooks") || pageSet.has("studio.app-store") || pageSet.has("studio.automata");
+  const integrationActive = pathname.startsWith("/dashboard/apps") || pathname.startsWith("/dashboard/webhooks") || pathname.startsWith("/dashboard/studio/app-store") || pathname.startsWith("/dashboard/studio/automata");
   const [integrationOpen, setIntegrationOpen] = useState(integrationActive);
 
   // Separate root nav items into page items and collection items
@@ -449,8 +451,9 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
 
             {integrationOpen && (
               <div className="ml-4 mt-0.5 space-y-0.5 border-l border-gray-100 dark:border-gray-700 pl-2">
-                {pageSet.has("apps") && <SubNavLink href="/dashboard/apps" icon={KeyRound} label="Applications" pathname={pathname} onNavigate={onNavigate} />}
+                {pageSet.has("apps") && <SubNavLink href="/dashboard/apps" icon={KeyRound} label="API Access" pathname={pathname} onNavigate={onNavigate} />}
                 {pageSet.has("studio.app-store") && <SubNavLink href="/dashboard/studio/app-store" icon={Store} label="App Store" pathname={pathname} onNavigate={onNavigate} />}
+                {pageSet.has("studio.automata") && <SubNavLink href="/dashboard/studio/automata" icon={Workflow} label="Automata" pathname={pathname} onNavigate={onNavigate} />}
                 {pageSet.has("webhooks") && <SubNavLink href="/dashboard/webhooks" icon={Webhook} label="Webhooks" pathname={pathname} onNavigate={onNavigate} />}
               </div>
             )}

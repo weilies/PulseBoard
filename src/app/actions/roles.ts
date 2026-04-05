@@ -239,7 +239,7 @@ export async function updatePolicyPermissions(formData: FormData) {
       }
     }
 
-    let permissions: Array<{ resource_type: "page" | "collection"; resource_id: string; permissions: Record<string, boolean> }> = [];
+    let permissions: Array<{ resource_type: "page" | "collection"; resource_id: string; permissions: Record<string, boolean>; conditions?: unknown[] }> = [];
     try { permissions = permissionsRaw ? JSON.parse(permissionsRaw) : []; }
     catch { return { error: "Invalid permissions format" }; }
 

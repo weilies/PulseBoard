@@ -346,7 +346,7 @@ export async function deleteItem(formData: FormData) {
   const supabase = await createClient();
   const result = await ItemsService.deleteItem(supabase, itemId, tenantId ?? undefined);
 
-  if (result.error) return { error: result.error };
+  if ("error" in result) return { error: result.error };
   revalidatePath(`/dashboard/studio/collections/${collectionSlug}/items`);
   return { data: true };
 }

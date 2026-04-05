@@ -207,6 +207,45 @@ export async function fetchGrandchildData(
   return { data: results };
 }
 
+/**
+ * Fetch a single page of grandchild items for pagination.
+ * Lightweight — does not re-fetch fields or catalog data.
+ */
+export async function fetchGrandchildItems(
+  childItemId: string,
+  gcCollectionId: string,
+  gcFieldSlug: string,
+  page: number,
+): Promise<{ data?: { items: GrandchildData["items"]; total: number }; error?: string }> {
+  const user = await getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const tenantId = await resolveTenant(user.id);
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("collection_items")
+    .select("id, data, created_at, updated_at", { count: "exact" })
+    .eq("collection_id", gcCollectionId)
+    .eq(`data->>${gcFieldSlug}`, childItemId)
+    .order("created_at", { ascending: false })
+    .range((page - 1) * GRANDCHILD_PAGE_SIZE, page * GRANDCHILD_PAGE_SIZE - 1);
+
+  if (tenantId) {
+    query = query.eq("tenant_id", tenantId);
+  }
+
+  const { data: items, count, error } = await query;
+  if (error) return { error: error.message };
+
+  return {
+    data: {
+      items: (items ?? []) as GrandchildData["items"],
+      total: count ?? 0,
+    },
+  };
+}
+
 export async function fetchRelationItems(
   relatedCollectionId: string
 ): Promise<{ data?: RelationItem[]; error?: string }> {

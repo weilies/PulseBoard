@@ -3,6 +3,7 @@ import { resolveApiContext, apiErr, paginate } from "../../../_lib/api-auth";
 import { validateItemData } from "@/lib/collection-validation";
 import { fireWebhooks, runPreSaveWebhooks, firePostSaveWebhooks } from "@/lib/webhooks";
 import { resolveDisplayLabels, resolveCatalogLabels } from "../../../_lib/display-resolve";
+import { isExemptFromItemPolicy, resolveItemPolicy, applyPolicyToItems, actionAllowedByPolicy } from "@/lib/services/collection-rbac.service";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -228,6 +229,26 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
   if (error) return apiErr(error.message, 500);
 
+  // Item-level RBAC enforcement — strict deny-by-default (user auth only)
+  if (auth.ctx.authMode === "user" && auth.ctx.userId) {
+    const exempt = await isExemptFromItemPolicy(db, auth.ctx.userId, tenantId);
+    if (!exempt) {
+      const policy = await resolveItemPolicy(db, collection.id, tenantId, auth.ctx.userId);
+      if (!policy) {
+        // No policy defined for this role → deny all
+        items = [];
+      } else {
+        if (!actionAllowedByPolicy(policy, "read")) {
+          return apiErr("Access denied: your role does not have read access to this collection", 403);
+        }
+        items = await applyPolicyToItems(
+          items as { id: string; data: Record<string, unknown>; created_by?: string | null }[],
+          policy, db, auth.ctx.userId, tenantId
+        ) as Record<string, unknown>[];
+      }
+    }
+  }
+
   // Locale resolution
   if (locale && items.length > 0) {
     const itemIds = items.map((i) => i.id as string);
@@ -298,6 +319,16 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const collection = await resolveCollection(db, slug, tenantId);
   if (!collection) return apiErr("Collection not found", 404);
+
+  // Item-level RBAC: strict — must have policy with create action (user auth only)
+  if (auth.ctx.authMode === "user" && auth.ctx.userId) {
+    const exempt = await isExemptFromItemPolicy(db, auth.ctx.userId, tenantId);
+    if (!exempt) {
+      const policy = await resolveItemPolicy(db, collection.id, tenantId, auth.ctx.userId);
+      if (!policy) return apiErr("Access denied: no permission policy defined for your role", 403);
+      if (!actionAllowedByPolicy(policy, "create")) return apiErr("Access denied: your role does not have create access", 403);
+    }
+  }
 
   // Server-side field validation + rule engine (also normalizes datetime values to UTC ISO)
   // Detect parent ID: look for any child_of relation field value in the submitted data

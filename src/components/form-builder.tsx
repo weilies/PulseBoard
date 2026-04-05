@@ -425,32 +425,6 @@ function ElementRow({
               auto
             </span>
           )}
-
-          {/* Width toggle */}
-          <div className="flex items-center rounded-md border border-gray-200 dark:border-gray-700 text-xs overflow-hidden">
-            <button
-              onClick={() => onPatch({ width: "full" })}
-              className={`px-2 py-1 transition-colors ${
-                element.width === "full"
-                  ? "bg-blue-500/20 text-blue-600 dark:text-blue-400"
-                  : "text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
-              title="Full width"
-            >
-              Full
-            </button>
-            <button
-              onClick={() => onPatch({ width: "half" })}
-              className={`px-2 py-1 border-l border-gray-200 dark:border-gray-700 transition-colors ${
-                element.width === "half"
-                  ? "bg-blue-500/20 text-blue-600 dark:text-blue-400"
-                  : "text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
-              title="Half width"
-            >
-              Half
-            </button>
-          </div>
         </div>
 
         <MoveControls index={index} total={total} onMove={onMove} onRemove={onRemove} />
@@ -557,45 +531,77 @@ function ElementRow({
           </button>
         </div>
         <div className={`grid gap-2 ${element.columns === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-          {element.slots.map((slot, colIdx) => (
-            <div
-              key={colIdx}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const fieldSlug = e.dataTransfer.getData("fieldSlug");
-                if (!fieldSlug || placedSlugs.has(fieldSlug)) return;
-                const newSlots = element.slots.map((s, si) =>
-                  si === colIdx ? [...s, { type: "field" as const, fieldSlug, width: "full" as const }] : s
-                );
-                onPatch({ slots: newSlots } as Partial<FormElementColumnGroup>);
-              }}
-              className="min-h-[60px] rounded border border-dashed border-gray-300 dark:border-gray-600 p-2 space-y-1"
-            >
-              <p className="text-[10px] text-gray-500 dark:text-gray-400">Col {colIdx + 1}</p>
-              {slot.map((slotEl, slotIdx) => {
-                const f = fields.find((fi) => fi.slug === slotEl.fieldSlug);
-                return (
-                  <div key={slotIdx} className="flex items-center justify-between gap-1 bg-white dark:bg-gray-800 rounded px-2 py-1 border border-gray-200 dark:border-gray-700 text-xs">
-                    <span className="text-gray-900 dark:text-gray-100 truncate">{f?.name ?? slotEl.fieldSlug}</span>
-                    <button
-                      onClick={() => {
-                        const newSlots = element.slots.map((s, si) =>
-                          si === colIdx ? s.filter((_, fi) => fi !== slotIdx) : s
-                        );
-                        onPatch({ slots: newSlots } as Partial<FormElementColumnGroup>);
-                      }}
-                      className="text-gray-500 dark:text-gray-400 hover:text-red-400 shrink-0"
+          {element.slots.map((slot, colIdx) => {
+            const availableForSlot = fields.filter((f) => !placedSlugs.has(f.slug));
+            return (
+              <div
+                key={colIdx}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const fieldSlug = e.dataTransfer.getData("fieldSlug");
+                  if (!fieldSlug || placedSlugs.has(fieldSlug)) return;
+                  const newSlots = element.slots.map((s, si) =>
+                    si === colIdx ? [...s, { type: "field" as const, fieldSlug, width: "full" as const }] : s
+                  );
+                  onPatch({ slots: newSlots } as Partial<FormElementColumnGroup>);
+                }}
+                className="min-h-[60px] rounded border border-dashed border-gray-300 dark:border-gray-600 p-2 space-y-1"
+              >
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">Col {colIdx + 1}</p>
+                {slot.map((slotEl, slotIdx) => {
+                  const f = fields.find((fi) => fi.slug === slotEl.fieldSlug);
+                  return (
+                    <div key={slotIdx} className="flex items-center justify-between gap-1 bg-white dark:bg-gray-800 rounded px-2 py-1 border border-gray-200 dark:border-gray-700 text-xs">
+                      <span className="text-gray-900 dark:text-gray-100 truncate">{f?.name ?? slotEl.fieldSlug}</span>
+                      <button
+                        onClick={() => {
+                          const newSlots = element.slots.map((s, si) =>
+                            si === colIdx ? s.filter((_, fi) => fi !== slotIdx) : s
+                          );
+                          onPatch({ slots: newSlots } as Partial<FormElementColumnGroup>);
+                        }}
+                        className="text-gray-500 dark:text-gray-400 hover:text-red-400 shrink-0"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+                {availableForSlot.length > 0 ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <button className="w-full flex items-center justify-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 border border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-400 rounded py-1 px-2 transition-colors" />
+                      }
                     >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                  </div>
-                );
-              })}
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 italic">Drag field here</p>
-            </div>
-          ))}
+                      <Plus className="h-2.5 w-2.5" /> Add field
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto">
+                      {availableForSlot.map((f) => (
+                        <DropdownMenuItem
+                          key={f.slug}
+                          onClick={() => {
+                            const newSlots = element.slots.map((s, si) =>
+                              si === colIdx ? [...s, { type: "field" as const, fieldSlug: f.slug, width: "full" as const }] : s
+                            );
+                            onPatch({ slots: newSlots } as Partial<FormElementColumnGroup>);
+                          }}
+                          className="text-sm cursor-pointer gap-2"
+                        >
+                          <span className="text-gray-900 dark:text-gray-100">{f.name}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">{FIELD_TYPE_LABELS[f.field_type] ?? f.field_type}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 italic text-center py-1">No fields available</p>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );

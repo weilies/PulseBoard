@@ -265,9 +265,9 @@ export function CollectionSettings({ collectionId, fields, metadata }: Props) {
 
       {/* Cascade Rules */}
       <div className="space-y-2">
-        <Label className="text-gray-900 dark:text-gray-100 text-sm font-medium">On Parent Delete</Label>
+        <Label className="text-gray-900 dark:text-gray-100 text-sm font-medium">On Delete</Label>
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          What happens to child records when a parent item is deleted.
+          What happens to child records when this item is deleted.
         </p>
         <div className="space-y-1.5">
           <label className="flex items-center gap-2 cursor-pointer">

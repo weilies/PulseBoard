@@ -59,9 +59,9 @@ export default async function PoliciesPage({
 
  const isSuperTenant = !!tenantInfo?.is_super;
 
- // Non-super tenants only see "Tenant Management" system policy — not "Full Platform Access" etc.
+ // Non-super tenants do not see any system policies — they manage only their custom policies
  const rows = (pqResult.data ?? []).filter((p) =>
-  !p.is_system || isSuperTenant || p.name === "Tenant Management"
+  !p.is_system || isSuperTenant
  );
  const count = pqResult.count;
  const totalItems = count ?? 0;

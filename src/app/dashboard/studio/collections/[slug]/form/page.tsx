@@ -122,13 +122,13 @@ export default async function FormBuilderPage({
         </div>
       </div>
 
-      {/* Tab bar */}
+      {/* Primary tab bar */}
       <div className="flex gap-0 border-b border-gray-200 dark:border-gray-700">
         <Link
           href={`/dashboard/studio/collections/${slug}/schema`}
-          className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 border-b-2 border-blue-400 font-medium"
         >
-          Schema
+          Model
         </Link>
         <Link
           href={`/dashboard/studio/collections/${slug}/items`}
@@ -136,23 +136,27 @@ export default async function FormBuilderPage({
         >
           Items
         </Link>
+      </div>
+
+      {/* Secondary tab bar — Model sub-tabs */}
+      <div className="flex gap-0 border-b border-gray-200 dark:border-gray-700 -mt-px ml-1">
+        <Link
+          href={`/dashboard/studio/collections/${slug}/schema`}
+          className="px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+        >
+          Schema
+        </Link>
         <Link
           href={`/dashboard/studio/collections/${slug}/settings`}
-          className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          className="px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
         >
           Settings
         </Link>
         <Link
           href={`/dashboard/studio/collections/${slug}/form`}
-          className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 border-b-2 border-blue-400 font-medium"
+          className="px-3 py-1.5 text-xs text-blue-600 dark:text-blue-400 border-b-2 border-blue-400 font-medium"
         >
           Layout
-        </Link>
-        <Link
-          href={`/dashboard/studio/collections/${slug}/rules`}
-          className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-        >
-          Rules
         </Link>
       </div>
 

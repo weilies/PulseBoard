@@ -24,6 +24,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateField, deleteField } from "@/app/actions/studio";
+import { getCatalogSchema } from "@/app/actions/content-catalog";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { FieldFilterBuilder } from "@/components/field-filter-builder";
 import { FieldDisplaySelector } from "@/components/field-display-selector";
@@ -137,18 +138,13 @@ export function EditFieldDialog({
       setCatalogSchema(null);
       return;
     }
-    fetch(`/api/content-catalogs/${catalogSlug}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.data?.columns) {
-          setCatalogSchema(data.data.columns as CatalogSchema);
-        } else {
-          setCatalogSchema({ columns: [{ key: "label", label: "Label", type: "text" }, { key: "value", label: "Value", type: "text" }] });
-        }
-      })
-      .catch(() => {
-        setCatalogSchema({ columns: [{ key: "label", label: "Label", type: "text" }, { key: "value", label: "Value", type: "text" }] });
-      });
+    getCatalogSchema(catalogSlug).then((result) => {
+      if ("error" in result || !result.data?.columns) {
+        setCatalogSchema({ columns: [] });
+      } else {
+        setCatalogSchema(result.data);
+      }
+    });
   }, [catalogSlug]);
 
   function buildOptions(): Record<string, unknown> {
@@ -377,7 +373,6 @@ export function EditFieldDialog({
                           conditions={filterConditions}
                           onConditionsChange={setFilterConditions}
                           catalogColumns={catalogSchema?.columns || []}
-                          parentFields={[]}
                         />
                         <FieldDisplaySelector
                           displayColumns={displayColumns}

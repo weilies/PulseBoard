@@ -3,6 +3,7 @@ import { resolveApiContext, apiErr } from "../../../../_lib/api-auth";
 import { validateItemData } from "@/lib/collection-validation";
 import { fireWebhooks, runPreSaveWebhooks, firePostSaveWebhooks } from "@/lib/webhooks";
 import { resolveDisplayLabelsForItem, resolveDisplayLabels, resolveCatalogLabels } from "../../../../_lib/display-resolve";
+import { isExemptFromItemPolicy, resolveItemPolicy, itemPassesPolicy, actionAllowedByPolicy, applyFieldVisibility } from "@/lib/services/collection-rbac.service";
 
 type Params = { params: Promise<{ slug: string; id: string }> };
 
@@ -58,8 +59,24 @@ export async function GET(request: NextRequest, { params }: Params) {
   const result = await resolveItem(db, slug, id, tenantId);
   if (!result.ok) return apiErr(result.error, result.status);
 
+  // Item-level RBAC — strict deny-by-default (user auth only)
+  if (auth.ctx.authMode === "user" && auth.ctx.userId) {
+    const exempt = await isExemptFromItemPolicy(db, auth.ctx.userId, tenantId);
+    if (!exempt) {
+      const policy = await resolveItemPolicy(db, result.collection.id, tenantId, auth.ctx.userId);
+      if (!policy) return apiErr("Access denied: no permission policy defined for your role", 403);
+      if (!actionAllowedByPolicy(policy, "read")) return apiErr("Access denied", 403);
+      const item = result.item as { id: string; data: Record<string, unknown>; created_by?: string | null };
+      const passes = await itemPassesPolicy(item, policy, db, auth.ctx.userId, tenantId);
+      if (!passes) return apiErr("Item not found", 404);
+      result.item = applyFieldVisibility(item, policy.visible_fields) as Record<string, unknown>;
+    }
+  }
+
   const locale = request.nextUrl.searchParams.get("locale") ?? undefined;
-  const includeChildren = request.nextUrl.searchParams.get("include_children") === "true";
+  const depth = Math.min(2, Math.max(0, parseInt(request.nextUrl.searchParams.get("depth") ?? "0", 10) || 0));
+  const includeChildren = depth >= 1;
+  const includeGrandchildren = depth >= 2;
 
   // Resolve child collections if requested
   let childrenData: Record<string, { items: Record<string, unknown>[]; total: number }> | undefined;
@@ -120,14 +137,54 @@ export async function GET(request: NextRequest, { params }: Params) {
             .eq("collection_id", link.collectionId)
             .eq("field_type", "password");
           const childPwSlugs = new Set((childPwFields ?? []).map((f) => f.slug));
-          const maskedChildItems = (childItems ?? []).map((item) => {
-            if (childPwSlugs.size === 0) return item;
+          let finalChildItems: Record<string, unknown>[] = (childItems ?? []).map((item) => {
+            if (childPwSlugs.size === 0) return item as Record<string, unknown>;
             const d = { ...((item.data ?? {}) as Record<string, unknown>) };
             for (const s of childPwSlugs) if (s in d) d[s] = "****";
-            return { ...item, data: d };
+            return { ...item, data: d } as Record<string, unknown>;
           });
+
+          // Optionally embed grandchildren (Level 3) per child item
+          if (includeGrandchildren && finalChildItems.length > 0) {
+            const gcLinks = (allRelFields ?? [])
+              .filter((f) => {
+                const opts = f.options as Record<string, unknown>;
+                return opts?.relationship_style === "child_of" && opts?.related_collection_id === link.collectionId;
+              })
+              .map((f) => ({ collectionId: f.collection_id, fieldSlug: f.slug }));
+
+            if (gcLinks.length > 0) {
+              const gcColIds = gcLinks.map((g) => g.collectionId);
+              const { data: gcCols } = await db.from("collections").select("id, slug").in("id", gcColIds);
+              const gcColSlugMap = new Map((gcCols ?? []).map((c) => [c.id, c.slug]));
+
+              finalChildItems = await Promise.all(
+                finalChildItems.map(async (childItem) => {
+                  const gcData: Record<string, { items: unknown[]; total: number }> = {};
+                  await Promise.all(
+                    gcLinks.map(async (gcLink) => {
+                      const gcSlug = gcColSlugMap.get(gcLink.collectionId);
+                      if (!gcSlug) return;
+                      const { data: gcItems, count: gcCount } = await db
+                        .from("collection_items")
+                        .select("id, data, created_at, updated_at", { count: "exact" })
+                        .eq("collection_id", gcLink.collectionId)
+                        .eq(`data->>${gcLink.fieldSlug}`, childItem.id as string)
+                        .eq("tenant_id", tenantId)
+                        .order("created_at", { ascending: false })
+                        .limit(5);
+                      gcData[gcSlug] = { items: gcItems ?? [], total: gcCount ?? 0 };
+                    })
+                  );
+                  if (Object.keys(gcData).length > 0) return { ...childItem, _children: gcData };
+                  return childItem;
+                })
+              );
+            }
+          }
+
           childrenData![childSlug] = {
-            items: maskedChildItems as Record<string, unknown>[],
+            items: finalChildItems,
             total: count ?? 0,
           };
         })
@@ -288,6 +345,19 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const result = await resolveItem(db, slug, id, tenantId);
   if (!result.ok) return apiErr(result.error, result.status);
 
+  // Item-level RBAC — strict (user auth only)
+  if (auth.ctx.authMode === "user" && userId) {
+    const exempt = await isExemptFromItemPolicy(db, userId, tenantId);
+    if (!exempt) {
+      const policy = await resolveItemPolicy(db, result.collection.id, tenantId, userId);
+      if (!policy) return apiErr("Access denied: no permission policy defined for your role", 403);
+      if (!actionAllowedByPolicy(policy, "update")) return apiErr("Access denied", 403);
+      const item = result.item as { id: string; data: Record<string, unknown>; created_by?: string | null };
+      const passes = await itemPassesPolicy(item, policy, db, userId, tenantId);
+      if (!passes) return apiErr("Item not found", 404);
+    }
+  }
+
   // Server-side field validation + rule engine (isUpdate=true — also normalizes datetime values to UTC ISO)
   const validation = await validateItemData(
     result.collection.id,
@@ -363,6 +433,19 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
   const result = await resolveItem(db, slug, id, tenantId);
   if (!result.ok) return apiErr(result.error, result.status);
+
+  // Item-level RBAC — strict (user auth only)
+  if (auth.ctx.authMode === "user" && auth.ctx.userId) {
+    const exempt = await isExemptFromItemPolicy(db, auth.ctx.userId, tenantId);
+    if (!exempt) {
+      const policy = await resolveItemPolicy(db, result.collection.id, tenantId, auth.ctx.userId);
+      if (!policy) return apiErr("Access denied: no permission policy defined for your role", 403);
+      if (!actionAllowedByPolicy(policy, "delete")) return apiErr("Access denied", 403);
+      const item = result.item as { id: string; data: Record<string, unknown>; created_by?: string | null };
+      const passes = await itemPassesPolicy(item, policy, db, auth.ctx.userId, tenantId);
+      if (!passes) return apiErr("Item not found", 404);
+    }
+  }
 
   const deletedItem = result.item;
 

@@ -1,7 +1,6 @@
 # CLAUDE.md — PulseBox
 
-> **Active tasks live in [docs/TASKS.md](docs/TASKS.md). Check before starting work.**
-> **Implementation plans live in [docs/](docs/).**
+> **Active tasks: [docs/TASKS.md](docs/TASKS.md) — check before starting work.**
 ---
 
 ## Project Overview
@@ -38,49 +37,14 @@ The PM team gives direction, AI handles implementation.
 
 ### Key Directories
 
-```
-pulsebox/
-├── middleware.ts                    # Auth guard, tenant resolution, role-based route protection
-├── supabase/migrations/            # SQL migrations (run via `supabase db push`)
-├── docs/                           # Implementation plans & reference docs
-│   ├── RBAC_PLAN.md               # RBAC overhaul blueprint
-│   ├── STUDIO_PLAN.md             # Studio schema builder blueprint
-│   └── THEME.md                   # Cyberpunk theme reference (colors, animations, CSS classes)
-├── src/
-│   ├── app/                        # Next.js App Router pages
-│   │   ├── login/ & signup/        # Public auth pages
-│   │   ├── auth/callback/          # SSO/OAuth code exchange
-│   │   └── dashboard/              # Protected pages
-│   │       ├── users/              # tenant_admin+ (user management)
-│   │       ├── tenants/            # super_admin only (tenant management)
-│   │       └── studio/             # Schema builder (sidebar folder)
-│   │           ├── system-collections/  # super_admin writes
-│   │           ├── tenant-collections/  # tenant_admin+ CRUD
-│   │           ├── content-catalog/     # super_admin lookups
-│   │           └── collections/[slug]/  # Schema + Items
-│   ├── components/
-│   │   ├── ui/                     # shadcn/ui primitives (DO NOT manually edit)
-│   │   ├── sidebar.tsx             # Navigation sidebar (role-aware)
-│   │   ├── header.tsx              # Top bar with tenant switcher + user menu
-│   │   ├── tenant-switcher.tsx     # Dropdown to switch active tenant
-│   │   └── role-gate.tsx           # Conditional render by role
-│   ├── lib/
-│   │   ├── supabase/client.ts      # Browser Supabase client
-│   │   ├── supabase/server.ts      # Server Supabase client (cookie-aware)
-│   │   ├── supabase/admin.ts       # Service-role client (admin ops only)
-│   │   ├── auth.ts                 # Helpers: getUser, getUserRole, getUserTenants
-│   │   ├── tenant.ts               # Helpers: getCurrentTenantId, resolveTenant
-│   │   └── constants.ts            # Role enum, cookie name, public routes
-│   ├── hooks/                      # Client-side React hooks
-│   └── types/                      # TypeScript types (Supabase generated types go here)
-```
-
-### Auth Flow
-
-1. Signup → `supabase.auth.signUp()` → auto-creates `profiles` row via DB trigger
-2. Login → `supabase.auth.signInWithPassword()` → redirect to `/dashboard`
-3. Middleware refreshes session on every request, resolves tenant from cookie
-4. SSO ready: Supabase Auth supports SAML/OIDC via `signInWithSSO({ domain })`
+- `middleware.ts` — Auth guard, tenant resolution, route-level RBAC
+- `supabase/migrations/` — SQL migrations (push via `supabase db push --linked`)
+- `docs/THEME.md` — Theme token reference
+- `src/app/dashboard/` — All protected pages (users, tenants, studio/*)
+- `src/components/ui/` — shadcn/ui primitives (never edit manually)
+- `src/lib/supabase/` — client.ts / server.ts / admin.ts
+- `src/lib/auth.ts` — getUser, getUserRole, getUserTenants
+- `src/lib/tenant.ts` — getCurrentTenantId, resolveTenant
 
 ### Middleware Pipeline (`middleware.ts`)
 
@@ -206,7 +170,3 @@ PulseBox is a **fully dark** app. Every page and grid MUST use these tokens. Nev
 - Back link: `text-sm text-gray-500 hover:text-blue-600 transition-colors`
 - Card (if used): MUST include `bg-white border-gray-200`
 
-### SSO Integration (Future)
-- Supabase Auth natively supports SAML 2.0 and OIDC
-- Per-tenant SSO config stored in `tenants.settings` JSONB (`sso_domain`, `sso_provider`)
-- Auto-redirect users based on email domain matching

@@ -26,7 +26,7 @@ export default async function PolicyDetailPage({
  const adminDb = createAdminClient();
  const [{ data: tenantInfo }, { data: policy }, { data: collections }, { data: isSuperAdmin }] = await Promise.all([
   supabase.from("tenants").select("is_super").eq("id", tenantId).single(),
-  supabase.from("policies").select("id, name, description, is_system, tenant_id, policy_permissions(resource_type, resource_id, permissions)").eq("id", id).single(),
+  supabase.from("policies").select("id, name, description, is_system, tenant_id, policy_permissions(resource_type, resource_id, permissions, conditions)").eq("id", id).single(),
   // Use admin client to bypass RLS — tenant collections are only visible via RLS if you
   // already have read permission on them, creating a chicken-and-egg problem in the editor.
   adminDb.from("collections").select("id, name, type").eq("is_hidden", false).or(`type.eq.system,tenant_id.eq.${tenantId}`).order("name"),
@@ -92,6 +92,7 @@ export default async function PolicyDetailPage({
  resource_type: pp.resource_type as "page" | "collection",
  resource_id: pp.resource_id,
  permissions: pp.permissions as Record<string, boolean>,
+ conditions: (pp.conditions ?? []) as Array<{ field: string; op: string; val: unknown }>,
  }))}
  pages={availablePages}
  collections={(collections ?? []).map((c) => ({

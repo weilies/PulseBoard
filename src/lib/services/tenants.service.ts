@@ -25,23 +25,41 @@ export async function createTenant(
   if (roleError) return { error: `Tenant created but role seeding failed: ${roleError.message}` };
 
   // Link the role to the super tenant's shared "Tenant Management" system policy
-  const { data: systemPolicy } = await admin
+  const { data: systemPolicy, error: policyErr } = await admin
     .from("policies")
     .select("id")
     .eq("name", "Tenant Management")
     .eq("is_system", true)
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (systemPolicy) {
-    await admin.from("role_policies").insert([{ role_id: roleData.id, policy_id: systemPolicy.id }]);
+  if (policyErr || !systemPolicy) {
+    return { error: `Tenant created but could not find shared Tenant Management policy: ${policyErr?.message ?? "not found"}` };
   }
+
+  const { error: rpErr } = await admin
+    .from("role_policies")
+    .insert([{ role_id: roleData.id, policy_id: systemPolicy.id }]);
+  if (rpErr) return { error: `Tenant created but policy link failed: ${rpErr.message}` };
 
   // Assign creator as tenant_admin
   const { error: assignError } = await admin.from("tenant_users").insert([
     { tenant_id: tenantData.id, user_id: userId, role: "tenant_admin", role_id: roleData.id, is_default: false },
   ]);
   if (assignError) return { error: `Tenant created but could not assign creator: ${assignError.message}` };
+
+  // Seed nav_items for all standard pages so the sidebar populates immediately
+  await admin.from("nav_items").insert([
+    { tenant_id: tenantData.id, resource_type: "page", resource_id: "dashboard",                 sort_order: 0 },
+    { tenant_id: tenantData.id, resource_type: "page", resource_id: "users",                     sort_order: 1 },
+    { tenant_id: tenantData.id, resource_type: "page", resource_id: "studio.system-collections", sort_order: 2 },
+    { tenant_id: tenantData.id, resource_type: "page", resource_id: "studio.tenant-collections", sort_order: 3 },
+    { tenant_id: tenantData.id, resource_type: "page", resource_id: "roles",                     sort_order: 4 },
+    { tenant_id: tenantData.id, resource_type: "page", resource_id: "apps",                      sort_order: 5 },
+    { tenant_id: tenantData.id, resource_type: "page", resource_id: "webhooks",                  sort_order: 6 },
+    { tenant_id: tenantData.id, resource_type: "page", resource_id: "studio.app-store",          sort_order: 7 },
+  ]).select();
+  // nav_items seeding is best-effort — do not block tenant creation on failure
 
   return { data: tenantData };
 }

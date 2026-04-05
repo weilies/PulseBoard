@@ -152,7 +152,7 @@ export function CollectionActions({
  onClick={() => router.push(`${base}/schema`)}
  >
  <Database className="h-3.5 w-3.5" />
- Schema
+ Model
  </DropdownMenuItem>
  <DropdownMenuItem
  className="gap-2 cursor-pointer text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"

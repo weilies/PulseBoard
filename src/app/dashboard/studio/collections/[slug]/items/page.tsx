@@ -33,6 +33,7 @@ import { PAGE_SIZE, buildGridParams, type GridConfig } from "@/lib/data-grid";
 import { SortableHead } from "@/components/sortable-head";
 import { TablePagination } from "@/components/table-pagination";
 import { resolveCollectionIcon } from "@/lib/icons";
+import { isExemptFromItemPolicy, resolveItemPolicy, filterItemsByPolicy, actionAllowedByPolicy } from "@/lib/services/collection-rbac.service";
 
 type Collection = {
  id: string;
@@ -119,7 +120,7 @@ export default async function ItemsPage({
  if (catalogSlugs.length > 0) {
  const { data: catalogs } = await supabase
  .from("content_catalogs")
- .select("slug, content_catalog_items(value, label, sort_order)")
+ .select("slug, content_catalog_items(value, label, sort_order, data)")
  .in("slug", catalogSlugs);
 
  for (const catalog of catalogs ?? []) {
@@ -128,6 +129,7 @@ export default async function ItemsPage({
  value: string;
  label: string;
  sort_order: number;
+ data?: Record<string, unknown>;
  }[]) ?? []
  ).sort((a, b) => a.sort_order - b.sort_order);
  }
@@ -168,6 +170,37 @@ export default async function ItemsPage({
    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   items = data;
   count = c;
+ }
+
+ // Item-level RBAC — strict deny-by-default (super admins exempt)
+ let rbacDenied = false;
+ let rbacNoPolicyActions: string[] = [];
+ if (!isSuperAdmin) {
+  const exempt = await isExemptFromItemPolicy(supabase, user.id, tenantId);
+  if (!exempt) {
+   const itemPolicy = await resolveItemPolicy(supabase, collection.id, tenantId, user.id);
+   if (!itemPolicy) {
+    // No policy → deny all
+    items = [];
+    count = 0;
+    rbacDenied = true;
+   } else {
+    rbacNoPolicyActions = itemPolicy.actions;
+    if (!actionAllowedByPolicy(itemPolicy, "read")) {
+     items = [];
+     count = 0;
+     rbacDenied = true;
+    } else if (items && items.length > 0) {
+     const filtered = await filterItemsByPolicy(
+      (items as { id: string; data: Record<string, unknown>; created_at: string; updated_at: string }[])
+       .map((i) => ({ ...i, created_by: null })),
+      itemPolicy, supabase, user.id, tenantId
+     );
+     items = filtered as typeof items;
+     count = filtered.length;
+    }
+   }
+  }
  }
 
  // Fetch tenant languages for the locale tab UI in EditItemDialog
@@ -270,9 +303,14 @@ export default async function ItemsPage({
 
  // For tenant collections: always writable (RLS enforces tenant scope).
  // For system collections: check if the user has policy-granted create permission.
+ // Also gate on item-level RBAC: if rbacDenied or create not in policy actions, no write.
  let canWrite: boolean;
  if (isSuperAdmin) {
    canWrite = true;
+ } else if (rbacDenied) {
+   canWrite = false;
+ } else if (rbacNoPolicyActions.length > 0 && !rbacNoPolicyActions.includes("create")) {
+   canWrite = false;
  } else if (!isSystem) {
    canWrite = true;
  } else {
@@ -348,37 +386,19 @@ export default async function ItemsPage({
  </div>
  </div>
 
- {/* Tab bar */}
+ {/* Primary tab bar */}
  <div className="flex gap-0 border-b border-gray-200 dark:border-gray-700">
  <Link
  href={`/dashboard/studio/collections/${slug}/schema`}
- className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 dark:text-blue-400 transition-colors"
+ className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
  >
- Schema
+ Model
  </Link>
  <Link
  href={`/dashboard/studio/collections/${slug}/items`}
  className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 border-b-2 border-blue-400 font-medium"
  >
  Items
- </Link>
- <Link
- href={`/dashboard/studio/collections/${slug}/settings`}
- className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
- >
- Settings
- </Link>
- <Link
- href={`/dashboard/studio/collections/${slug}/form`}
- className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
- >
- Layout
- </Link>
- <Link
- href={`/dashboard/studio/collections/${slug}/rules`}
- className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
- >
- Rules
  </Link>
  </div>
 
@@ -417,7 +437,9 @@ export default async function ItemsPage({
  {(items?.length ?? 0) === 0 ? (
  <TableRow>
  <TableCell colSpan={gridFields.length + (canWrite ? 3 : 2) + (hasChildren ? 1 : 0)} className="text-center text-gray-500 dark:text-gray-400 py-10 bg-white dark:bg-gray-900">
- No items yet. {canWrite ? "Click \"Add Item\" to create the first record." : ""}
+ {rbacDenied
+  ? "Access denied — your role has no permission policy for this collection. Ask an admin to configure access under Policies."
+  : `No items yet. ${canWrite ? "Click \"Add Item\" to create the first record." : ""}`}
  </TableCell>
  </TableRow>
  ) : (

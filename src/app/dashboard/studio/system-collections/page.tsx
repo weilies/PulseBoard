@@ -13,6 +13,7 @@ import { TablePagination } from "@/components/table-pagination";
 import { TableFilters, type FilterColumn } from "@/components/table-filters";
 import { Suspense } from "react";
 import { resolveCollectionIcon } from "@/lib/icons";
+import { getAccessibleCollectionIds } from "@/lib/services/permissions.service";
 
 type Collection = {
  id: string;
@@ -62,12 +63,21 @@ export default async function SystemCollectionsPage({
  ? await supabase.from("tenants").select("is_super").eq("id", tenantId).maybeSingle()
  : { data: null };
  const isSuperAdmin = role === "super_admin" && (currentTenant?.is_super === true);
+ const isTenantAdmin = role === "tenant_admin";
+
+ // Non-admin users: restrict to collections explicitly granted in their policy
+ let accessibleIds: string[] | null = null;
+ if (!isSuperAdmin && !isTenantAdmin) {
+  accessibleIds = await getAccessibleCollectionIds(supabase, "read");
+ }
 
  let sq = supabase
  .from("collections")
  .select("*, collection_fields(id)", { count: "exact" })
  .eq("is_hidden", false)
  .eq("type", "system");
+
+ if (accessibleIds !== null) sq = sq.in("id", accessibleIds.length ? accessibleIds : ["00000000-0000-0000-0000-000000000000"]);
 
  if (filters.name) sq = sq.ilike("name", `%${filters.name}%`);
  if (filters.slug) sq = sq.ilike("slug", `%${filters.slug}%`);

@@ -20,12 +20,13 @@ export interface CatalogSchema {
 }
 
 /**
- * Filter condition linking a catalog column to a parent record field.
+ * Filter condition linking a catalog column to a static literal value.
+ * Filters catalog items to only show rows where catalogColumn == staticValue.
  * Multiple conditions use AND logic.
  */
 export interface CatalogFilterCondition {
-  catalogColumn: string;     // e.g., "employment_type"
-  parentField: string;       // e.g., "employment_type"
+  catalogColumn: string;     // e.g., "context"
+  staticValue: string;       // e.g., "JOB" — literal value to match
   operator: "equals";        // MVP: only equals
 }
 

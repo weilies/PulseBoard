@@ -5,6 +5,19 @@ import { revalidatePath } from "next/cache";
 import * as CatalogService from "@/lib/services/content-catalog.service";
 import type { CatalogSchema } from "@/types/catalog";
 
+export async function getCatalogSchema(slug: string): Promise<{ data: CatalogSchema | null } | { error: string }> {
+  if (!slug) return { data: null };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("content_catalogs")
+    .select("columns")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!data) return { error: "Catalog not found" };
+  return { data: (data.columns as CatalogSchema | null) ?? null };
+}
+
 export async function createCatalog(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   const description = (formData.get("description") as string)?.trim() || null;

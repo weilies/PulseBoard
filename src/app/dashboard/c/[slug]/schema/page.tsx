@@ -78,11 +78,11 @@ export default async function CollectionSchemaPage({
 
  if (!collection) notFound();
 
- // Check manage_schema permission
+ // Check model permission
  const { data: canManageSchema } = await supabase.rpc("has_permission", {
  p_resource_type: "collection",
  p_resource_id: collection.id,
- p_permission: "manage_schema",
+ p_permission: "model",
  });
 
  const { data: allCollections } = await supabase

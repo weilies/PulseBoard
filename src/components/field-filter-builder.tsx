@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { X } from "lucide-react";
 import { CatalogColumnDefinition, CatalogFilterCondition } from "@/types/catalog";
 
@@ -10,25 +11,35 @@ interface FieldFilterBuilderProps {
   conditions: CatalogFilterCondition[];
   onConditionsChange: (conditions: CatalogFilterCondition[]) => void;
   catalogColumns: CatalogColumnDefinition[];
-  parentFields: string[];
 }
 
 export function FieldFilterBuilder({
   conditions,
   onConditionsChange,
   catalogColumns,
-  parentFields,
 }: FieldFilterBuilderProps) {
   const [isEnabled, setIsEnabled] = useState(conditions.length > 0);
 
+  // Sync checkbox when parent conditions change (e.g. dialog opens with saved conditions)
+  useEffect(() => {
+    if (conditions.length > 0) setIsEnabled(true);
+  }, [conditions.length]);
+
+  // Always include label and value columns alongside extras
+  const allColumns = [
+    { key: "label", label: "Label", type: "text" as const },
+    { key: "value", label: "Value", type: "text" as const },
+    ...catalogColumns.filter((col) => col.key !== "label" && col.key !== "value"),
+  ];
+
   const handleAddCondition = useCallback(() => {
     const newCondition: CatalogFilterCondition = {
-      catalogColumn: catalogColumns[0]?.key || "",
-      parentField: parentFields[0] || "",
+      catalogColumn: allColumns[0]?.key || "",
+      staticValue: "",
       operator: "equals",
     };
     onConditionsChange([...conditions, newCondition]);
-  }, [conditions, catalogColumns, parentFields, onConditionsChange]);
+  }, [conditions, allColumns, onConditionsChange]);
 
   const handleRemoveCondition = useCallback(
     (index: number) => {
@@ -81,7 +92,7 @@ export function FieldFilterBuilder({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {catalogColumns.map((col) => (
+                  {allColumns.map((col) => (
                     <SelectItem key={col.key} value={col.key}>
                       {col.key}
                     </SelectItem>
@@ -91,18 +102,12 @@ export function FieldFilterBuilder({
 
               <span className="text-xs text-gray-400">equals</span>
 
-              <Select value={condition.parentField} onValueChange={(val) => handleConditionChange(index, "parentField", val)}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Parent field..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {parentFields.map((field) => (
-                    <SelectItem key={field} value={field}>
-                      {field}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                placeholder="e.g. JOB"
+                value={condition.staticValue}
+                onChange={(e) => handleConditionChange(index, "staticValue", e.target.value)}
+                className="flex-1 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+              />
 
               <Button
                 size="sm"

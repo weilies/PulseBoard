@@ -25,6 +25,7 @@ import {
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { createField } from "@/app/actions/studio";
+import { getCatalogSchema } from "@/app/actions/content-catalog";
 import { FieldFilterBuilder } from "@/components/field-filter-builder";
 import { FieldDisplaySelector } from "@/components/field-display-selector";
 import { CatalogSchema, CatalogFilterCondition } from "@/types/catalog";
@@ -100,18 +101,13 @@ export function CreateFieldDialog({ collectionId, collectionSlug, allCollections
    setCatalogSchema(null);
    return;
   }
-  fetch(`/api/content-catalogs/${catalogSlug}`)
-   .then((res) => res.json())
-   .then((data) => {
-    if (data?.data?.columns) {
-     setCatalogSchema(data.data.columns as CatalogSchema);
-    } else {
-     setCatalogSchema({ columns: [{ key: "label", label: "Label", type: "text" }, { key: "value", label: "Value", type: "text" }] });
-    }
-   })
-   .catch(() => {
-    setCatalogSchema({ columns: [{ key: "label", label: "Label", type: "text" }, { key: "value", label: "Value", type: "text" }] });
-   });
+  getCatalogSchema(catalogSlug).then((result) => {
+   if ("error" in result || !result.data?.columns) {
+    setCatalogSchema({ columns: [] });
+   } else {
+    setCatalogSchema(result.data);
+   }
+  });
  }, [catalogSlug]);
 
  function buildOptions(): Record<string, unknown> {
@@ -457,7 +453,6 @@ export function CreateFieldDialog({ collectionId, collectionSlug, allCollections
     conditions={filterConditions}
     onConditionsChange={setFilterConditions}
     catalogColumns={catalogSchema?.columns || []}
-    parentFields={[]}
    />
    <FieldDisplaySelector
     displayColumns={displayColumns}

@@ -28,6 +28,9 @@ import {
 } from "@/components/ui/dialog";
 import type { TenantLanguage } from "@/types/translations";
 import type { GrandchildData } from "@/app/actions/relations";
+import { fetchGrandchildItems } from "@/app/actions/relations";
+
+const GRANDCHILD_PAGE_SIZE = 5;
 import { getFieldLabel } from "@/lib/i18n";
 import { formatDate, formatDatetime, datetimeLocalToISO } from "@/lib/timezone-constants";
 
@@ -78,8 +81,28 @@ export function GrandchildGrid({
   currentLocale,
   tenantLanguages,
 }: GrandchildGridProps) {
-  const router = useRouter();
-  const { collection: gc, items, total, fields, catalogItems, effectiveDateField } = grandchild;
+  const { collection: gc, items: initialItems, total: initialTotal, fields, catalogItems, effectiveDateField } = grandchild;
+
+  const [pageItems, setPageItems] = useState(initialItems);
+  const [localTotal, setLocalTotal] = useState(initialTotal);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loadingPage, setLoadingPage] = useState(false);
+  const totalPages = Math.ceil(localTotal / GRANDCHILD_PAGE_SIZE);
+
+  async function refreshGrid(goToPage = 1) {
+    setLoadingPage(true);
+    const result = await fetchGrandchildItems(parentItemId, gc.id, gc.fieldSlug, goToPage);
+    setLoadingPage(false);
+    if (result.data) {
+      setPageItems(result.data.items);
+      setLocalTotal(result.data.total);
+      setCurrentPage(goToPage);
+    }
+  }
+
+  async function handlePageChange(newPage: number) {
+    await refreshGrid(newPage);
+  }
 
   // Filter out the parent relation field from display
   const displayFields = fields.filter((f) => {
@@ -93,9 +116,9 @@ export function GrandchildGrid({
 
   // Effective date: most recent <= today is "Current"
   let currentItemId: string | null = null;
-  if (effectiveDateField && items.length > 0) {
+  if (effectiveDateField && pageItems.length > 0) {
     const today = new Date().toISOString().slice(0, 10);
-    const eligible = items
+    const eligible = pageItems
       .filter((item) => {
         const d = item.data[effectiveDateField] as string | undefined;
         return d && d <= today;
@@ -109,12 +132,12 @@ export function GrandchildGrid({
   }
 
   return (
-    <div className="ml-8 mr-4 my-2 rounded border border-blue-100 bg-blue-50/30">
+    <div className="ml-8 mr-4 my-2 rounded border border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-gray-800/50">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-xs font-medium text-gray-700">
+        <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
           {gc.name}
-          <span className="ml-1.5 text-gray-400 font-normal">({total})</span>
+          <span className="ml-1.5 text-gray-400 dark:text-gray-500 font-normal">({localTotal})</span>
         </span>
         {canWrite && (
           <AddGrandchildDialog
@@ -125,20 +148,21 @@ export function GrandchildGrid({
             collectionSlug={gc.slug}
             catalogItems={catalogItems}
             timezone={timezone}
+            onAdded={() => refreshGrid(1)}
           />
         )}
       </div>
 
       {/* Compact grid */}
-      {items.length === 0 ? (
-        <div className="px-3 pb-3 text-xs text-gray-400">
+      {pageItems.length === 0 ? (
+        <div className="px-3 pb-3 text-xs text-gray-400 dark:text-gray-500">
           No records.{canWrite ? " Click \"+ Add\" to create one." : ""}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <Table className="text-xs">
             <TableHeader>
-              <TableRow className="border-blue-100 hover:bg-transparent">
+              <TableRow className="border-blue-100 dark:border-blue-900/30 hover:bg-transparent">
                 <TableHead className="text-gray-500 dark:text-gray-400 py-1 px-2 w-8">#</TableHead>
                 {visibleFields.map((f) => (
                   <TableHead key={f.id} className="text-gray-500 dark:text-gray-400 py-1 px-2 whitespace-nowrap">
@@ -150,7 +174,7 @@ export function GrandchildGrid({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item, idx) => {
+              {pageItems.map((item, idx) => {
                 const isCurrent = item.id === currentItemId;
                 const isHistorical = effectiveDateField && !isCurrent && currentItemId !== null;
                 return (
@@ -170,6 +194,8 @@ export function GrandchildGrid({
                     collectionId={gc.id}
                     collectionSlug={gc.slug}
                     tenantLanguages={tenantLanguages}
+                    onDeleted={() => refreshGrid(currentPage)}
+                    onSaved={() => refreshGrid(currentPage)}
                   />
                 );
               })}
@@ -178,10 +204,29 @@ export function GrandchildGrid({
         </div>
       )}
 
-      {/* Show more hint */}
-      {total > items.length && (
-        <div className="px-3 pb-2 text-xs text-gray-400">
-          Showing {items.length} of {total} records.
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-3 pb-2 pt-1 border-t border-blue-100 dark:border-blue-900/30">
+          <span className="text-xs text-gray-400 dark:text-gray-500">{localTotal} records</span>
+          <div className="flex items-center gap-1.5">
+            <button
+              disabled={currentPage === 1 || loadingPage}
+              onClick={() => handlePageChange(currentPage - 1)}
+              className="h-5 w-5 inline-flex items-center justify-center rounded text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100/50 dark:hover:bg-blue-900/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs"
+            >
+              ←
+            </button>
+            <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+              {loadingPage ? "…" : `${currentPage} / ${totalPages}`}
+            </span>
+            <button
+              disabled={currentPage === totalPages || loadingPage}
+              onClick={() => handlePageChange(currentPage + 1)}
+              className="h-5 w-5 inline-flex items-center justify-center rounded text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100/50 dark:hover:bg-blue-900/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs"
+            >
+              →
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -207,6 +252,8 @@ function GrandchildRow({
   collectionId,
   collectionSlug,
   tenantLanguages,
+  onDeleted,
+  onSaved,
 }: {
   item: { id: string; data: Record<string, unknown>; created_at: string; updated_at: string };
   index: number;
@@ -222,8 +269,9 @@ function GrandchildRow({
   collectionId: string;
   collectionSlug: string;
   tenantLanguages: TenantLanguage[];
+  onDeleted: () => void;
+  onSaved: () => void;
 }) {
-  const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -241,17 +289,17 @@ function GrandchildRow({
     }
     toast.success("Record deleted");
     setDeleteOpen(false);
-    router.refresh();
+    onDeleted();
   }
 
   return (
     <>
       <TableRow
-        className={`border-blue-100 hover:bg-blue-50/50 ${
-          index % 2 === 0 ? "bg-transparent" : "bg-blue-50/20"
+        className={`border-blue-100 dark:border-blue-900/30 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 ${
+          index % 2 === 0 ? "bg-transparent" : "bg-blue-50/20 dark:bg-blue-900/10"
         } ${isHistorical ? "opacity-50" : ""}`}
       >
-        <TableCell className="text-gray-400 py-1 px-2">{index + 1}</TableCell>
+        <TableCell className="text-gray-400 dark:text-gray-500 py-1 px-2">{index + 1}</TableCell>
         {visibleFields.map((f) => {
           const value = item.data?.[f.slug];
           return (
@@ -265,11 +313,11 @@ function GrandchildRow({
         {effectiveDateField && (
           <TableCell className="py-1 px-2">
             {isCurrent ? (
-              <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px] px-1 py-0">
+              <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800/40 text-[10px] px-1 py-0">
                 Current
               </Badge>
             ) : isHistorical ? (
-              <span className="text-[10px] text-gray-400">Historical</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500">Historical</span>
             ) : null}
           </TableCell>
         )}
@@ -278,14 +326,14 @@ function GrandchildRow({
             <div className="flex items-center gap-0.5 justify-end">
               <button
                 onClick={() => setEditOpen(true)}
-                className="h-6 w-6 inline-flex items-center justify-center rounded text-gray-400 hover:text-blue-600 hover:bg-blue-100/50 transition-colors"
+                className="h-6 w-6 inline-flex items-center justify-center rounded text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100/50 dark:hover:bg-blue-900/30 transition-colors"
                 title="Edit"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
               </button>
               <button
                 onClick={() => setDeleteOpen(true)}
-                className="h-6 w-6 inline-flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                className="h-6 w-6 inline-flex items-center justify-center rounded text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                 title="Delete"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
@@ -308,6 +356,7 @@ function GrandchildRow({
           currentLocale={currentLocale}
           timezone={timezone}
           onDeleteRequest={() => { setEditOpen(false); setDeleteOpen(true); }}
+          onSaved={onSaved}
         />
       )}
 
@@ -345,6 +394,7 @@ function AddGrandchildDialog({
   collectionSlug,
   catalogItems,
   timezone,
+  onAdded,
 }: {
   parentItemId: string;
   parentFieldSlug: string;
@@ -353,8 +403,8 @@ function AddGrandchildDialog({
   collectionSlug: string;
   catalogItems: CatalogItems;
   timezone: string;
+  onAdded: () => void;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, unknown>>({});
@@ -393,7 +443,7 @@ function AddGrandchildDialog({
     toast.success("Record created");
     setOpen(false);
     setFormValues({});
-    router.refresh();
+    onAdded();
   }
 
   return (
@@ -403,7 +453,7 @@ function AddGrandchildDialog({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-xs gap-1 text-blue-600 hover:bg-blue-100/50"
+            className="h-6 px-2 text-xs gap-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100/50 dark:hover:bg-blue-900/30"
           />
         }
       >
@@ -415,12 +465,12 @@ function AddGrandchildDialog({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle
-              className="text-blue-600"
+              className="text-blue-600 dark:text-blue-400"
               style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}
             >
               Add Record
             </DialogTitle>
-            <DialogDescription className="text-gray-500">
+            <DialogDescription className="text-gray-500 dark:text-gray-400">
               Fill in the fields to create a new record.
             </DialogDescription>
           </DialogHeader>
@@ -441,7 +491,7 @@ function AddGrandchildDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600"
+                  className="border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400"
                   onClick={() => setFormValues({})}
                 />
               }
@@ -451,7 +501,7 @@ function AddGrandchildDialog({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-blue-50 border border-blue-500/40 text-blue-600 hover:bg-blue-500/30"
+              className="bg-blue-50 dark:bg-blue-900/30 border border-blue-500/40 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30 dark:hover:bg-blue-800/40"
             >
               {loading ? "Creating..." : "Create"}
             </Button>

@@ -2,46 +2,51 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { Plus, Trash2, ChevronUp, ChevronDown, Save, GripVertical, Layers, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, ChevronUp, ChevronDown, Save, GripVertical } from "lucide-react";
 import { saveParentRecordLayout } from "@/app/actions/studio";
-import type { ParentRecordLayout, ParentRecordElement } from "@/types/parent-record-layout";
+import type {
+  ParentRecordLayout,
+  ParentRecordElement,
+  ParentRecordColumnGroup,
+} from "@/types/parent-record-layout";
+
+// ---------------------------------------------------------------------------
+// Types & helpers
+// ---------------------------------------------------------------------------
 
 type SchemaField = { id: string; slug: string; name: string; field_type: string };
 
 const FIELD_TYPE_LABELS: Record<string, string> = {
-  text: "Text",
-  number: "Number",
-  date: "Date",
-  datetime: "DateTime",
-  boolean: "Toggle",
-  file: "File",
-  select: "Select",
-  multiselect: "Multi-Select",
-  richtext: "Rich Text",
-  json: "JSON",
-  relation: "Relation",
-  password: "Password / Secret",
+  text: "Text", number: "Number", date: "Date", datetime: "DateTime",
+  boolean: "Toggle", file: "File", select: "Select", multiselect: "Multi-Select",
+  richtext: "Rich Text", json: "JSON", relation: "Relation", password: "Password / Secret",
 };
 
-function genId() {
-  return Math.random().toString(36).slice(2, 10);
+function collectPlacedSlugs(elements: ParentRecordElement[]): string[] {
+  return elements.flatMap((el) => {
+    if (el.type === "field") return [el.fieldSlug];
+    if (el.type === "column-group") return el.slots.flatMap((slot) => slot.map((s) => s.fieldSlug));
+    return [];
+  });
 }
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
 export function ParentRecordLayoutBuilder({
   collectionId,
@@ -59,259 +64,446 @@ export function ParentRecordLayoutBuilder({
   );
   const [saving, setSaving] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
-  const placedSlugs = new Set(elements.map((e) => e.fieldSlug));
+  const placedSlugs = new Set(collectPlacedSlugs(elements));
   const availableFields = fields.filter((f) => !placedSlugs.has(f.slug));
 
-  const handleAddField = (fieldSlug: string) => {
-    const field = fields.find((f) => f.slug === fieldSlug);
-    if (!field) return;
-    setElements([
-      ...elements,
-      { type: "field", fieldSlug, width: "1" },
-    ]);
-  };
+  function addElement(el: ParentRecordElement) {
+    setElements((prev) => [...prev, el]);
+  }
 
-  const handleRemove = (index: number) => {
-    setElements(elements.filter((_, i) => i !== index));
-  };
+  function removeElement(idx: number) {
+    setElements((prev) => prev.filter((_, i) => i !== idx));
+  }
 
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return;
-    const newElements = [...elements];
-    [newElements[index], newElements[index - 1]] = [
-      newElements[index - 1],
-      newElements[index],
-    ];
-    setElements(newElements);
-  };
+  function patchElement(idx: number, patch: Partial<ParentRecordElement>) {
+    setElements((prev) =>
+      prev.map((el, i) => (i === idx ? ({ ...el, ...patch } as ParentRecordElement) : el))
+    );
+  }
 
-  const handleMoveDown = (index: number) => {
-    if (index === elements.length - 1) return;
-    const newElements = [...elements];
-    [newElements[index], newElements[index + 1]] = [
-      newElements[index + 1],
-      newElements[index],
-    ];
-    setElements(newElements);
-  };
+  function moveElement(idx: number, dir: "up" | "down") {
+    setElements((prev) => {
+      const arr = [...prev];
+      const to = dir === "up" ? idx - 1 : idx + 1;
+      if (to < 0 || to >= arr.length) return arr;
+      [arr[idx], arr[to]] = [arr[to], arr[idx]];
+      return arr;
+    });
+  }
 
-  const handleDrop = (dropIndex: number) => {
-    if (dragIndex === null || dragIndex === dropIndex) {
-      setDragIndex(null);
-      setDragOverIndex(null);
+  function handleElementDrop(dropIdx: number) {
+    if (dragIdx === null || dragIdx === dropIdx) {
+      setDragIdx(null);
+      setDragOverIdx(null);
       return;
     }
-    const newElements = [...elements];
-    const [moved] = newElements.splice(dragIndex, 1);
-    newElements.splice(dropIndex, 0, moved);
-    setElements(newElements);
-    setDragIndex(null);
-    setDragOverIndex(null);
-  };
+    setElements((prev) => {
+      const arr = [...prev];
+      const [moved] = arr.splice(dragIdx, 1);
+      arr.splice(dropIdx, 0, moved);
+      return arr;
+    });
+    setDragIdx(null);
+    setDragOverIdx(null);
+  }
 
-  const handleWidthChange = (index: number, width: "1" | "2" | "3") => {
-    const newElements = [...elements];
-    newElements[index].width = width;
-    setElements(newElements);
-  };
-
-  const handleSave = async () => {
+  async function handleSave() {
     setSaving(true);
-    try {
-      await saveParentRecordLayout(collectionId, { elements });
-      toast.success("Parent record layout saved");
-    } catch (err) {
-      toast.error("Failed to save layout");
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
-  };
+    const result = await saveParentRecordLayout(collectionId, { elements });
+    setSaving(false);
+    if ("error" in result) toast.error(result.error);
+    else toast.success("Parent record layout saved");
+  }
 
   if (!canEdit) {
     return (
-      <div className="text-sm text-gray-500 dark:text-gray-400">
-        You don't have permission to edit this layout.
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-10 text-center">
+        <p className="text-sm text-gray-500 dark:text-gray-400">Layout is read-only for this collection.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          Fields to display in parent record
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          Max 3 columns: width "1" (1/3), "2" (2/3), "3" (full). Mobile shows 1 column.
+    <div className="space-y-6">
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Configure which fields appear in the parent record card. Use column groups for multi-column rows.
+          Fields not placed here are hidden from the card.
         </p>
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          size="sm"
+          className="gap-1.5 bg-blue-50 dark:bg-blue-950 border border-blue-500/40 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30 hover:text-[#a8c4ff] shrink-0"
+        >
+          <Save className="h-3.5 w-3.5" />
+          {saving ? "Saving…" : "Save Layout"}
+        </Button>
+      </div>
 
-        {/* Field list */}
-        {elements.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
-            No fields added yet. Add fields using the dropdown below.
-          </p>
-        ) : (
-          <div className="space-y-2 mb-4 bg-gray-50 dark:bg-gray-800/30 rounded-lg p-4">
-            {elements.map((el, idx) => {
-              const field = fields.find((f) => f.slug === el.fieldSlug);
-              return (
-                <div
-                  key={idx}
-                  draggable
-                  onDragStart={() => setDragIndex(idx)}
-                  onDragOver={(e) => { e.preventDefault(); setDragOverIndex(idx); }}
-                  onDragLeave={() => setDragOverIndex(null)}
-                  onDrop={(e) => { e.preventDefault(); handleDrop(idx); }}
-                  onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
-                  className={cn(
-                    "flex items-center justify-between gap-2 p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing transition-all",
-                    dragOverIndex === idx && "border-blue-400 bg-blue-50 dark:bg-blue-950/30",
-                    dragIndex === idx && "opacity-50"
-                  )}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <GripVertical className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
-                    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {field?.name}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {FIELD_TYPE_LABELS[field?.field_type ?? ""] || field?.field_type}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* Width selector */}
-                    <Select value={el.width} onValueChange={(v) => handleWidthChange(idx, v as "1" | "2" | "3")}>
-                      <SelectTrigger className="h-8 w-16 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 col</SelectItem>
-                        <SelectItem value="2">2 col</SelectItem>
-                        <SelectItem value="3">3 col</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {/* Move buttons */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleMoveUp(idx)}
-                      disabled={idx === 0}
-                    >
-                      <ChevronUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleMoveDown(idx)}
-                      disabled={idx === elements.length - 1}
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-
-                    {/* Remove button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      onClick={() => handleRemove(idx)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+      {/* Canvas */}
+      <div className="space-y-3">
+        {elements.length === 0 && (
+          <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 py-10 text-center">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              No elements yet — click Add Element below.
+            </p>
           </div>
         )}
 
-        {/* Add Element button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setDrawerOpen(true)}
-          disabled={availableFields.length === 0}
-          className="gap-1.5 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add Element
-        </Button>
-
-        {/* Add Element Sheet */}
-        <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-          <SheetContent side="right" className="w-80 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700">
-            <SheetHeader>
-              <SheetTitle className="text-gray-900 dark:text-gray-100 text-sm font-semibold">Add Field</SheetTitle>
-            </SheetHeader>
-            <div className="mt-4 space-y-1">
-              {availableFields.length === 0 ? (
-                <p className="text-xs text-gray-500 dark:text-gray-400 py-4 text-center">All fields are placed.</p>
-              ) : (
-                availableFields.map((f) => (
-                  <button
-                    key={f.slug}
-                    onClick={() => { handleAddField(f.slug); setDrawerOpen(false); }}
-                    className="w-full flex items-start gap-2 px-3 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-left transition-colors"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{f.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{FIELD_TYPE_LABELS[f.field_type] ?? f.field_type}</p>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
+        {elements.map((el, idx) => (
+          <div
+            key={idx}
+            draggable
+            onDragStart={() => setDragIdx(idx)}
+            onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
+            onDragLeave={() => setDragOverIdx(null)}
+            onDrop={(e) => { e.preventDefault(); handleElementDrop(idx); }}
+            onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
+          >
+            <ParentElementRow
+              element={el}
+              index={idx}
+              total={elements.length}
+              fields={fields}
+              placedSlugs={placedSlugs}
+              onMove={(dir) => moveElement(idx, dir)}
+              onRemove={() => removeElement(idx)}
+              onPatch={(patch) => patchElement(idx, patch)}
+              isDragOver={dragOverIdx === idx}
+              isDragging={dragIdx === idx}
+            />
+          </div>
+        ))}
       </div>
 
-      {/* Grid preview */}
-      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800/30 rounded-lg">
-        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">
-          Preview (Desktop)
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {elements.map((el, idx) => {
-            const field = fields.find((f) => f.slug === el.fieldSlug);
-            const colClass =
-              el.width === "1"
-                ? "col-span-1"
-                : el.width === "2"
-                  ? "col-span-2"
-                  : "col-span-3";
+      {/* Add Element button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setDrawerOpen(true)}
+        className="h-8 gap-1.5 text-xs border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/40"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Add Element
+      </Button>
+
+      {/* Unplaced fields notice */}
+      {availableFields.length > 0 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+          <p className="text-xs text-amber-400">
+            <strong>{availableFields.length} unplaced field{availableFields.length > 1 ? "s" : ""}:</strong>{" "}
+            {availableFields.map((f) => f.name).join(", ")}.
+            These will not appear in the parent card.
+          </p>
+        </div>
+      )}
+
+      {/* Add Element Drawer */}
+      <ParentAddElementDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        fields={fields}
+        placedSlugs={placedSlugs}
+        onAdd={addElement}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ParentElementRow
+// ---------------------------------------------------------------------------
+
+function ParentElementRow({
+  element,
+  index,
+  total,
+  fields,
+  placedSlugs,
+  onMove,
+  onRemove,
+  onPatch,
+  isDragOver,
+  isDragging,
+}: {
+  element: ParentRecordElement;
+  index: number;
+  total: number;
+  fields: SchemaField[];
+  placedSlugs: Set<string>;
+  onMove: (dir: "up" | "down") => void;
+  onRemove: () => void;
+  onPatch: (patch: Partial<ParentRecordElement>) => void;
+  isDragOver?: boolean;
+  isDragging?: boolean;
+}) {
+  if (element.type === "field") {
+    const def = fields.find((f) => f.slug === element.fieldSlug);
+    return (
+      <div className={cn(
+        "flex items-center gap-2 rounded-lg border bg-white dark:bg-gray-900 px-3 py-2.5 transition-colors h-full cursor-grab",
+        isDragOver ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30" : "border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700",
+        isDragging && "opacity-50"
+      )}>
+        <GripVertical className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          <div className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />
+          <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+            {def?.name ?? element.fieldSlug}
+          </span>
+          <code className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 rounded px-1 font-mono shrink-0 hidden sm:block">
+            {element.fieldSlug}
+          </code>
+          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+            {def ? (FIELD_TYPE_LABELS[def.field_type] ?? def.field_type) : "?"}
+          </span>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            onClick={() => onMove("up")}
+            disabled={index === 0}
+            className="p-1 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-25 transition-colors"
+          >
+            <ChevronUp className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => onMove("down")}
+            disabled={index === total - 1}
+            className="p-1 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-25 transition-colors"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onRemove}
+            className="p-1 rounded text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (element.type === "column-group") {
+    return (
+      <div className={cn(
+        "rounded-lg border border-green-500/30 bg-green-50/30 dark:bg-green-950/20 p-3 space-y-2",
+        isDragOver && "border-blue-400",
+        isDragging && "opacity-50"
+      )}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <GripVertical className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 cursor-grab shrink-0" />
+            <span className="text-xs font-medium text-green-700 dark:text-green-400">
+              {element.columns}-Column Layout
+            </span>
+          </div>
+          <button
+            onClick={onRemove}
+            className="p-0.5 text-gray-500 dark:text-gray-400 hover:text-red-400 rounded"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className={`grid gap-2 ${element.columns === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+          {element.slots.map((slot, colIdx) => {
+            const availableForSlot = fields.filter((f) => !placedSlugs.has(f.slug));
             return (
               <div
-                key={idx}
-                className={`${colClass} p-2 bg-white dark:bg-gray-800 rounded border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-400`}
+                key={colIdx}
+                className="min-h-[60px] rounded border border-dashed border-gray-300 dark:border-gray-600 p-2 space-y-1"
               >
-                {field?.name}
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">Col {colIdx + 1}</p>
+                {slot.map((slotField, slotIdx) => {
+                  const f = fields.find((fi) => fi.slug === slotField.fieldSlug);
+                  return (
+                    <div
+                      key={slotIdx}
+                      className="flex items-center justify-between gap-1 bg-white dark:bg-gray-800 rounded px-2 py-1 border border-gray-200 dark:border-gray-700 text-xs"
+                    >
+                      <span className="text-gray-900 dark:text-gray-100 truncate">
+                        {f?.name ?? slotField.fieldSlug}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const newSlots = element.slots.map((s, si) =>
+                            si === colIdx ? s.filter((_, fi) => fi !== slotIdx) : s
+                          );
+                          onPatch({ slots: newSlots } as Partial<ParentRecordColumnGroup>);
+                        }}
+                        className="text-gray-500 dark:text-gray-400 hover:text-red-400 shrink-0"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+                {availableForSlot.length > 0 ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <button className="w-full flex items-center justify-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 border border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-400 rounded py-1 px-2 transition-colors" />
+                      }
+                    >
+                      <Plus className="h-2.5 w-2.5" /> Add field
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto"
+                    >
+                      {availableForSlot.map((f) => (
+                        <DropdownMenuItem
+                          key={f.slug}
+                          onClick={() => {
+                            const newSlots = element.slots.map((s, si) =>
+                              si === colIdx ? [...s, { fieldSlug: f.slug }] : s
+                            );
+                            onPatch({ slots: newSlots } as Partial<ParentRecordColumnGroup>);
+                          }}
+                          className="text-sm cursor-pointer gap-2"
+                        >
+                          <span className="text-gray-900 dark:text-gray-100">{f.name}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {FIELD_TYPE_LABELS[f.field_type] ?? f.field_type}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 italic text-center py-1">
+                    No fields available
+                  </p>
+                )}
               </div>
             );
           })}
         </div>
       </div>
+    );
+  }
 
-      {/* Save button */}
-      <Button
-        onClick={handleSave}
-        disabled={saving}
-        className="gap-1.5"
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// ParentAddElementDrawer
+// ---------------------------------------------------------------------------
+
+function ParentAddElementDrawer({
+  open,
+  onOpenChange,
+  fields,
+  placedSlugs,
+  onAdd,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  fields: SchemaField[];
+  placedSlugs: Set<string>;
+  onAdd: (el: ParentRecordElement) => void;
+}) {
+  const availableFields = fields.filter((f) => !placedSlugs.has(f.slug));
+  const placedFields = fields.filter((f) => placedSlugs.has(f.slug));
+
+  function addField(slug: string) {
+    onAdd({ type: "field", fieldSlug: slug });
+    onOpenChange(false);
+  }
+
+  function addColumnGroup(columns: 2 | 3) {
+    onAdd({
+      type: "column-group",
+      columns,
+      slots: Array.from({ length: columns }, () => []),
+    });
+    onOpenChange(false);
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="w-72 sm:max-w-72 flex flex-col gap-0 p-0 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800"
       >
-        <Save className="h-4 w-4" />
-        {saving ? "Saving..." : "Save Layout"}
-      </Button>
-    </div>
+        <SheetHeader className="border-b border-gray-200 dark:border-gray-800 px-4 py-3">
+          <SheetTitle className="text-sm text-gray-900 dark:text-gray-100">Add Element</SheetTitle>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          {/* Fields */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Fields
+            </p>
+            {availableFields.length === 0 && placedFields.length === 0 && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 italic">No fields in this collection yet.</p>
+            )}
+            {availableFields.map((f) => (
+              <button
+                key={f.slug}
+                onClick={() => addField(f.slug)}
+                className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+              >
+                <div className="h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
+                <span className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate">{f.name}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                  {FIELD_TYPE_LABELS[f.field_type] ?? f.field_type}
+                </span>
+                <Plus className="h-3.5 w-3.5 text-blue-400 opacity-0 group-hover:opacity-100 shrink-0" />
+              </button>
+            ))}
+            {placedFields.length > 0 && (
+              <div className="space-y-1">
+                {placedFields.map((f) => (
+                  <div
+                    key={f.slug}
+                    className="flex items-center gap-2 rounded-md px-3 py-2 opacity-40 cursor-not-allowed"
+                  >
+                    <div className="h-1.5 w-1.5 rounded-full bg-gray-400 shrink-0" />
+                    <span className="text-sm text-gray-500 flex-1 truncate">{f.name}</span>
+                    <span className="text-xs text-gray-400 shrink-0">placed</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Layout */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+              Layout
+            </p>
+            <button
+              onClick={() => addColumnGroup(2)}
+              className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+            >
+              <Layers className="h-4 w-4 text-green-400 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-gray-900 dark:text-gray-100">2 Columns</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Two equal side-by-side columns</p>
+              </div>
+              <Plus className="h-3.5 w-3.5 text-blue-400 opacity-0 group-hover:opacity-100 shrink-0" />
+            </button>
+            <button
+              onClick={() => addColumnGroup(3)}
+              className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+            >
+              <Layers className="h-4 w-4 text-green-400 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-gray-900 dark:text-gray-100">3 Columns</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Three equal columns</p>
+              </div>
+              <Plus className="h-3.5 w-3.5 text-blue-400 opacity-0 group-hover:opacity-100 shrink-0" />
+            </button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

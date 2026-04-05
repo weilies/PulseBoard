@@ -13,7 +13,8 @@ export type CollectionPermission =
   | "delete"
   | "export"
   | "import"
-  | "manage_schema";
+  | "model"
+  | "permission";
 
 export type PagePermission = "access";
 
@@ -82,7 +83,7 @@ export const PAGE_SECTIONS: Array<{ section: string; pages: string[] }> = [
 ];
 
 /** All collection permission keys. */
-export const COLLECTION_PERMS = ["read", "create", "update", "delete", "export", "import", "manage_schema"] as const;
+export const COLLECTION_PERMS = ["read", "create", "update", "delete", "export", "import", "model", "permission"] as const;
 
 // ---------------------------------------------------------------------------
 // Core helpers
@@ -168,7 +169,7 @@ export async function getCollectionPermissions(
   supabase: SupabaseClient
 ): Promise<Map<string, Set<CollectionPermission>>> {
   const permissions: CollectionPermission[] = [
-    "read", "create", "update", "delete", "export", "import", "manage_schema",
+    "read", "create", "update", "delete", "export", "import", "model", "permission",
   ];
 
   const results = await Promise.all(

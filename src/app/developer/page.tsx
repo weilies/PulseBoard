@@ -547,18 +547,53 @@ curl -X POST "https://YOUR-DOMAIN/api/collections/employments/items" \\
 #   }]
 # }`}</Code>
 
- <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider pt-2">Get parent item with children</p>
- <Code>{`# Fetch an Employee with all child tabs (Employments, Identities, etc.)
-curl "https://YOUR-DOMAIN/api/collections/employees/items/{item-id}?include_children=true" \\
+ <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider pt-2">Get parent item with nested records (depth)</p>
+ <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 space-y-2 text-xs mb-3">
+ {[
+  ["depth=0", "cyan", "Default — return only the item itself (no children)"],
+  ["depth=1", "green", "Include direct children in _children object"],
+  ["depth=2", "purple", "Recurse one more level — each child item gains its own _children"],
+ ].map(([param, color, desc]) => (
+  <div key={param} className="flex items-start gap-3">
+  <Badge color={color as "cyan" | "green" | "purple"}>{param}</Badge>
+  <span className="text-gray-500 dark:text-gray-400">{desc}</span>
+  </div>
+ ))}
+ </div>
+ <Code>{`# depth=1 — fetch Employee with child collections
+curl "https://YOUR-DOMAIN/api/collections/employees/items/{item-id}?depth=1" \\
  -H "Authorization: Bearer $TOKEN" \\
  -H "X-Tenant-Id: $TENANT"
 
-# Response includes _children object:
+# Response:
 # {
 #   "data": { "id": "...", "data": { "name": "Alice", ... } },
 #   "_children": {
 #     "employments": { "items": [...], "total": 3 },
 #     "identities":  { "items": [...], "total": 1 }
+#   }
+# }
+
+# depth=2 — each child item gets its own _children (same key, recursive)
+curl "https://YOUR-DOMAIN/api/collections/employees/items/{item-id}?depth=2" \\
+ -H "Authorization: Bearer $TOKEN" \\
+ -H "X-Tenant-Id: $TENANT"
+
+# Response: _children is used at every level uniformly
+# {
+#   "data": { ... },
+#   "_children": {
+#     "employments": {
+#       "items": [
+#         {
+#           "id": "...", "data": { ... },
+#           "_children": {
+#             "bios": { "items": [...], "total": 1 }
+#           }
+#         }
+#       ],
+#       "total": 1
+#     }
 #   }
 # }`}</Code>
 
