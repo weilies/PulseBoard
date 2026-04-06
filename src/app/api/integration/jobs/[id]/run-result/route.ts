@@ -39,6 +39,12 @@ export async function POST(
       error_code?: string;
       error_message?: string;
     }>;
+    error_rows?: Array<{
+      row_number?: number;
+      source_data?: unknown;
+      error_code?: string;
+      error_message?: string;
+    }>;
   };
 
   try {
@@ -64,10 +70,11 @@ export async function POST(
     return Response.json({ error: updateError.message }, { status: 500 });
   }
 
-  // Insert row-level errors if any
-  if (body.errors && body.errors.length > 0) {
+  // Insert row-level errors if any (accept both `errors` and `error_rows` field names)
+  const errorRows = body.errors ?? body.error_rows;
+  if (errorRows && errorRows.length > 0) {
     await db.from("integration_job_errors").insert(
-      body.errors.map((e) => ({
+      errorRows.map((e) => ({
         run_id: runId,
         row_number: e.row_number ?? null,
         source_data: e.source_data ?? null,
@@ -76,6 +83,7 @@ export async function POST(
       }))
     );
   }
+
 
   return Response.json({ ok: true });
 }

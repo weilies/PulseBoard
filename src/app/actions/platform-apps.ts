@@ -390,3 +390,56 @@ export async function updateAppCredential(formData: FormData): Promise<{ error?:
 
   return {};
 }
+
+// ---------------------------------------------------------------------------
+// Tenant: Resolve a row-level error
+// ---------------------------------------------------------------------------
+
+export async function resolveErrorRow(
+  formData: FormData
+): Promise<{ error?: string }> {
+  const user = await getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const tenantId = await resolveTenant(user.id);
+  if (!tenantId) return { error: "No tenant context" };
+
+  const errorId = formData.get("error_id") as string;
+  const resolutionNote = (formData.get("resolution_note") as string) ?? "";
+
+  if (!errorId) return { error: "Missing error ID" };
+
+  const db = createAdminClient();
+
+  // Verify the error row belongs to this tenant (via run → installed app → tenant)
+  const { data: row } = await db
+    .from("integration_job_errors")
+    .select(`
+      id,
+      resolved_at,
+      integration_job_runs!inner(
+        tenant_installed_apps!inner(tenant_id)
+      )
+    `)
+    .eq("id", errorId)
+    .maybeSingle();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rowTenantId = (row as any)?.integration_job_runs?.tenant_installed_apps?.tenant_id;
+  if (!row || rowTenantId !== tenantId) return { error: "Error row not found" };
+  if (row.resolved_at) return { error: "Already resolved" };
+
+  const { error } = await db
+    .from("integration_job_errors")
+    .update({
+      resolved_at: new Date().toISOString(),
+      resolved_by: user.id,
+      resolution_note: resolutionNote || null,
+    })
+    .eq("id", errorId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/dashboard/studio/automata`);
+  return {};
+}

@@ -16,6 +16,7 @@ import {
   pauseInstalledApp, resumeInstalledApp,
   updateInstalledAppConfig, updateInstalledAppAccess, updateAppCredential,
 } from "@/app/actions/platform-apps";
+import Link from "next/link";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -498,10 +499,209 @@ function CredentialsTab({ install, app, credentials }: { install: InstallInfo; a
 }
 
 // ---------------------------------------------------------------------------
+// Error Routing types + section
+// ---------------------------------------------------------------------------
+
+type ErrorAction = "log_only" | "notify" | "abort" | "silent";
+
+interface ErrorRoutingRule {
+  action: ErrorAction;
+  target_type?: "role" | "email";
+  target?: string;
+  threshold?: number;
+  abort?: boolean;
+}
+
+type ErrorRoutingConfig = Record<string, ErrorRoutingRule>;
+
+const ERROR_EVENTS: { key: string; label: string; desc: string; hasThreshold?: boolean }[] = [
+  { key: "on_file_not_found", label: "File not found", desc: "Source file or feed is missing when workflow starts." },
+  { key: "on_parse_error", label: "Parse error", desc: "An input record could not be parsed (malformed data)." },
+  { key: "on_row_error", label: "Row error", desc: "A single row fails validation or processing. Others may continue." },
+  { key: "on_partial_success", label: "Partial success", desc: "Run completed but some rows failed. Triggered when error rate exceeds threshold.", hasThreshold: true },
+  { key: "on_complete", label: "On complete", desc: "Fires after every run regardless of outcome." },
+];
+
+const ACTION_LABELS: Record<ErrorAction, string> = {
+  log_only: "Log only",
+  notify: "Notify",
+  abort: "Abort",
+  silent: "Silent",
+};
+
+function ErrorRoutingSection({
+  install,
+  roles,
+  onUpdate,
+}: {
+  install: InstallInfo;
+  roles: Role[];
+  onUpdate: (config: Record<string, unknown>) => void;
+}) {
+  const existingRouting = (install.config.error_routing ?? {}) as ErrorRoutingConfig;
+  const [routing, setRouting] = useState<ErrorRoutingConfig>(existingRouting);
+  const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function setRule(eventKey: string, updates: Partial<ErrorRoutingRule>) {
+    setRouting((prev) => ({
+      ...prev,
+      [eventKey]: { ...(prev[eventKey] ?? { action: "log_only" }), ...updates },
+    }));
+  }
+
+  function handleSave() {
+    setError(null); setSaved(false);
+    startTransition(async () => {
+      const newConfig = { ...install.config, error_routing: routing };
+      const fd = new FormData();
+      fd.set("installed_app_id", install.id);
+      fd.set("config", JSON.stringify(newConfig));
+      const result = await updateInstalledAppConfig(fd);
+      if (result.error) { setError(result.error); return; }
+      onUpdate(newConfig);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    });
+  }
+
+  return (
+    <div className="space-y-4 pt-4 border-t border-gray-200">
+      <div>
+        <p className="text-sm font-semibold text-gray-700">Error Routing</p>
+        <p className="text-xs text-gray-400 mt-0.5">Configure how this automation reacts to each type of error. Settings are stored here and injected into the n8n workflow as environment variables.</p>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
+        {ERROR_EVENTS.map((evt) => {
+          const rule = routing[evt.key] ?? { action: "log_only" as ErrorAction };
+          return (
+            <div key={evt.key} className="p-4 bg-white space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-800">{evt.label}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{evt.desc}</p>
+              </div>
+              <div className="flex flex-wrap gap-3 items-start">
+                {/* Action */}
+                <div className="flex-1 min-w-[120px]">
+                  <label className="text-xs text-gray-500 mb-1 block">Action</label>
+                  <Select
+                    value={rule.action ?? "log_only"}
+                    onValueChange={(v) => v && setRule(evt.key, { action: v as ErrorAction, target: undefined, target_type: undefined })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(["log_only", "notify", "abort", "silent"] as ErrorAction[]).map((a) => (
+                        <SelectItem key={a} value={a}>{ACTION_LABELS[a]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Target (if notify) */}
+                {rule.action === "notify" && (
+                  <>
+                    <div className="min-w-[90px]">
+                      <label className="text-xs text-gray-500 mb-1 block">Target type</label>
+                      <Select
+                        value={rule.target_type ?? "role"}
+                        onValueChange={(v) => v && setRule(evt.key, { target_type: v as "role" | "email", target: "" })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="role">Role</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-1 min-w-[140px]">
+                      <label className="text-xs text-gray-500 mb-1 block">
+                        {rule.target_type === "email" ? "Email address" : "Role"}
+                      </label>
+                      {rule.target_type === "email" ? (
+                        <Input
+                          className="h-8 text-xs"
+                          placeholder="ops@acme.com"
+                          value={rule.target ?? ""}
+                          onChange={(e) => setRule(evt.key, { target: e.target.value })}
+                        />
+                      ) : (
+                        <Select
+                          value={rule.target ?? ""}
+                          onValueChange={(v) => v && setRule(evt.key, { target: v })}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select role…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {roles.map((r) => (
+                              <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Threshold (on_partial_success + notify) */}
+                {evt.hasThreshold && rule.action === "notify" && (
+                  <div className="min-w-[120px]">
+                    <label className="text-xs text-gray-500 mb-1 block">Error threshold (%)</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      className="h-8 text-xs"
+                      placeholder="e.g. 5"
+                      value={rule.threshold != null ? String(Math.round(rule.threshold * 100)) : ""}
+                      onChange={(e) => setRule(evt.key, { threshold: parseFloat(e.target.value) / 100 })}
+                    />
+                    <p className="text-xs text-gray-400 mt-0.5">Notify when error rate exceeds this %</p>
+                  </div>
+                )}
+
+                {/* Abort checkbox (for notify actions) */}
+                {(rule.action === "notify") && (
+                  <div className="flex items-end pb-1">
+                    <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5"
+                        checked={rule.abort ?? false}
+                        onChange={(e) => setRule(evt.key, { abort: e.target.checked })}
+                      />
+                      Abort after notifying
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+      <div className="flex items-center gap-3">
+        <Button onClick={handleSave} disabled={isPending} size="sm">
+          {isPending ? "Saving…" : "Save Error Routing"}
+        </Button>
+        {saved && <span className="text-sm text-emerald-600">✓ Saved</span>}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Tab: Config
 // ---------------------------------------------------------------------------
 
-function ConfigTab({ install, app, onUpdate }: { install: InstallInfo; app: AppInfo; onUpdate: (config: Record<string, unknown>) => void }) {
+function ConfigTab({ install, app, roles, onUpdate }: { install: InstallInfo; app: AppInfo; roles: Role[]; onUpdate: (config: Record<string, unknown>) => void }) {
   const nonCredFields = (app.config_schema?.fields ?? []).filter((f) => f.type !== "credential");
   const [values, setValues] = useState<Record<string, string>>(
     Object.fromEntries(nonCredFields.map((f) => [f.key, String(install.config[f.key] ?? "")]))
@@ -596,6 +796,8 @@ function ConfigTab({ install, app, onUpdate }: { install: InstallInfo; app: AppI
         <Button onClick={handleSave} disabled={isPending}>{isPending ? "Saving…" : "Save Config"}</Button>
         {saved && <span className="text-sm text-emerald-600">✓ Saved</span>}
       </div>
+
+      <ErrorRoutingSection install={install} roles={roles} onUpdate={onUpdate} />
     </div>
   );
 }
@@ -772,7 +974,7 @@ function WorkflowTab({ installedAppId, n8nWorkflowId }: { installedAppId: string
 // Tab: Logs
 // ---------------------------------------------------------------------------
 
-function LogsTab({ installedAppId }: { installedAppId: string }) {
+function LogsTab({ installedAppId, installId }: { installedAppId: string; installId: string }) {
   const [runs, setRuns] = useState<LogRun[] | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -832,6 +1034,7 @@ function LogsTab({ installedAppId }: { installedAppId: string }) {
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Duration</th>
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Status</th>
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Summary</th>
+                    <th className="px-4 py-2.5"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -856,6 +1059,14 @@ function LogsTab({ installedAppId }: { installedAppId: string }) {
                             {Object.entries(run.summary).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join(" · ")}
                           </span>
                         ) : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/dashboard/studio/automata/${installId}/runs/${run.id}`}
+                          className="text-xs text-blue-500 hover:text-blue-700 whitespace-nowrap"
+                        >
+                          View details →
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -1011,6 +1222,7 @@ export function AppDetailClient({
           <ConfigTab
             install={install}
             app={app}
+            roles={roles}
             onUpdate={(config) => setInstall((prev) => ({ ...prev, config }))}
           />
         )}
@@ -1025,7 +1237,7 @@ export function AppDetailClient({
           <WorkflowTab installedAppId={install.id} n8nWorkflowId={install.n8n_workflow_id} />
         )}
         {activeTab === "logs" && (
-          <LogsTab installedAppId={install.id} />
+          <LogsTab installedAppId={install.id} installId={install.id} />
         )}
       </div>
     </div>
