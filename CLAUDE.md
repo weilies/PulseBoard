@@ -116,57 +116,7 @@ npx supabase gen types typescript --linked > src/types/database.ts
 - No `"use client"` unless the component genuinely needs browser APIs / state
 
 ### UI / Dark Theme (STRICTLY enforced — no exceptions)
-PulseBox is a **fully dark** app. Every page and grid MUST use these tokens. Never use plain `<Card>` without explicit dark classes. Never use `text-zinc-500`, `bg-white`, `bg-card`, `bg-background`, or any light default shadcn styles in page content.
+PulseBox supports light + dark mode. Every element MUST include both light and dark Tailwind variants. Never use `bg-white`, `text-gray-900`, `border-gray-200`, or any bare light class without a `dark:` counterpart.
 
-> Full theme reference (colors, animations, CSS classes, fonts): [docs/THEME.md](docs/THEME.md)
-
-**Page structure template:**
-```tsx
-<div className="p-6 space-y-6 max-w-5xl">
-  {/* Header */}
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-3">
-      <Icon className="h-6 w-6 text-blue-600" />
-      <div>
-        <h1 className="text-xl font-bold text-gray-900" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>Title</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Subtitle</p>
-      </div>
-    </div>
-    {/* Action button (if any) */}
-  </div>
-
-  {/* Table */}
-  <div className="rounded-lg border border-gray-200 overflow-hidden">
-    <Table>
-      <TableHeader className="bg-gray-100">
-        <TableRow className="border-gray-200 hover:bg-transparent">
-          <TableHead className="text-gray-500">Column</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((row, i) => (
-          <TableRow key={row.id} className={`border-blue-500/10 hover:bg-gray-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-            <TableCell className="text-gray-900">{row.name}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  </div>
-
-  {/* Footnote (optional) */}
-  <p className="text-xs text-gray-500">...</p>
-</div>
-```
-
-**Token reference:**
-- Heading: `text-gray-900` + `fontFamily: "var(--font-geist-sans), sans-serif"`
-- Subtitle / secondary text: `text-gray-500`
-- Table border: `border-gray-200`
-- Table header bg: `bg-gray-100`
-- Row even: `bg-white`  Row odd: `bg-gray-50`
-- Row hover: `hover:bg-gray-50`
-- Slug/code: `rounded bg-gray-100 px-1.5 py-0.5 text-xs text-blue-600 font-mono`
-- Empty state: `text-center text-gray-500 py-10`
-- Back link: `text-sm text-gray-500 hover:text-blue-600 transition-colors`
-- Card (if used): MUST include `bg-white border-gray-200`
+**Before building any new screen or component, run `/new-screen`** to load the full template and dark-token cheatsheet.
 
