@@ -32,9 +32,10 @@ interface TenantActionsProps {
  contactName?: string | null;
  contactEmail?: string | null;
  timezone?: string | null;
+ feedbackMode?: boolean;
 }
 
-export function TenantActions({ tenantId, tenantName, tenantSlug, isSuper, contactName, contactEmail, timezone }: TenantActionsProps) {
+export function TenantActions({ tenantId, tenantName, tenantSlug, isSuper, contactName, contactEmail, timezone, feedbackMode }: TenantActionsProps) {
  const router = useRouter();
  const [editOpen, setEditOpen] = useState(false);
  const [confirmOpen, setConfirmOpen] = useState(false);
@@ -135,6 +136,7 @@ export function TenantActions({ tenantId, tenantName, tenantSlug, isSuper, conta
  currentContactName={contactName}
  currentContactEmail={contactEmail}
  currentTimezone={timezone}
+ currentFeedbackMode={feedbackMode}
  onDeleteRequest={!isSuper ? () => { setEditOpen(false); setConfirmOpen(true); } : undefined}
  />
  </>

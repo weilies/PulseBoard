@@ -66,9 +66,9 @@ export async function createTenant(
 
 export async function updateTenant(
   supabase: SupabaseClient,
-  params: { tenantId: string; name: string; slug: string; contactName?: string; contactEmail?: string; timezone?: string }
+  params: { tenantId: string; name: string; slug: string; contactName?: string; contactEmail?: string; timezone?: string; feedbackMode?: boolean }
 ) {
-  const { tenantId, name, slug, contactName, contactEmail, timezone } = params;
+  const { tenantId, name, slug, contactName, contactEmail, timezone, feedbackMode } = params;
   const { data, error } = await supabase
     .from("tenants")
     .update({
@@ -77,6 +77,7 @@ export async function updateTenant(
       contact_name: contactName || null,
       contact_email: contactEmail || null,
       timezone: timezone || "Asia/Singapore",
+      feedback_mode: feedbackMode ?? false,
     })
     .eq("id", tenantId);
   if (error) return { error: error.message };

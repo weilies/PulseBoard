@@ -87,8 +87,42 @@ export async function deleteApp(appId: string): Promise<{ error?: string }> {
   if ("error" in auth) return { error: auth.error };
 
   const db = createAdminClient();
+
+  // Extra guard: only the super tenant (Next Novas) may hard-delete apps
+  const { data: tenantRow } = await db
+    .from("tenants")
+    .select("is_super")
+    .eq("id", auth.tenantId)
+    .maybeSingle();
+  if (!tenantRow?.is_super) return { error: "Only the platform super-tenant can delete apps" };
+
+  // Cascade: deactivate n8n workflows for every install
+  const { data: installs } = await db
+    .from("tenant_installed_apps")
+    .select("id, n8n_workflow_id")
+    .eq("app_id", appId);
+
+  for (const install of installs ?? []) {
+    if (install.n8n_workflow_id) {
+      // Non-blocking — best effort cleanup
+      N8n.deactivateWorkflow(install.n8n_workflow_id).catch(() => {});
+    }
+  }
+
+  const installIds = (installs ?? []).map((i) => i.id);
+
+  // Delete credentials linked to every install
+  if (installIds.length > 0) {
+    await db.from("tenant_app_credentials").delete().in("tenant_installed_app_id", installIds);
+  }
+
+  // Delete all installs across all tenants
+  await db.from("tenant_installed_apps").delete().eq("app_id", appId);
+
+  // Hard-delete the app itself
   const { error } = await db.from("platform_apps").delete().eq("id", appId);
   if (error) return { error: error.message };
+
   revalidatePath("/dashboard/admin/apps");
   return {};
 }

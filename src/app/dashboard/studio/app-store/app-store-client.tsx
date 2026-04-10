@@ -403,14 +403,14 @@ function AppCard({
 
   return (
     <>
-      <div className="rounded-lg border border-gray-200 bg-white p-4 flex flex-col gap-3 hover:shadow-sm transition-shadow">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 flex flex-col gap-3 hover:shadow-sm transition-shadow">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-100">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900">
             <Icon className="h-5 w-5 text-blue-600" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-gray-900 text-sm">{app.name}</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{app.name}</span>
               <span className="text-xs text-gray-400 font-mono">v{app.version}</span>
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -432,7 +432,7 @@ function AppCard({
 
         {error && <p className="text-xs text-red-500">{error}</p>}
 
-        <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+        <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-700">
           {app.isInstalled ? (
             <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -446,7 +446,7 @@ function AppCard({
             <button
               onClick={handleUninstall}
               disabled={isPending}
-              className="rounded border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
+              className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 transition-colors disabled:opacity-50"
             >
               {isPending ? "Uninstalling…" : "Uninstall"}
             </button>
@@ -509,7 +509,7 @@ export function AppStoreClient({
   return (
     <div className="space-y-4">
       {/* Filter tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -526,8 +526,8 @@ export function AppStoreClient({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center text-gray-500 py-16 rounded-lg border border-gray-200 bg-gray-50">
-          <Store className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+        <div className="text-center text-gray-500 dark:text-gray-400 py-16 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <Store className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
           <p className="text-sm">
             {filter === "installed"
               ? "No apps installed yet."

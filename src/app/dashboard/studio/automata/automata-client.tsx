@@ -420,23 +420,23 @@ export function AutomataDashboard({
     return (
       <div className="space-y-6">
         {/* Guide banner */}
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-5 space-y-3">
-          <div className="flex items-center gap-2 text-blue-700 font-semibold">
+        <div className="rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 p-5 space-y-3">
+          <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-semibold">
             <Info className="h-5 w-5" />
             Getting started with Automata
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-blue-800">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-blue-800 dark:text-blue-300">
             <div className="flex flex-col gap-1">
               <span className="font-medium">① Browse App Store</span>
-              <span className="text-blue-600 text-xs">Find n8n-powered integrations published by Next Novas for your vertical.</span>
+              <span className="text-blue-600 dark:text-blue-400 text-xs">Find n8n-powered integrations published by Next Novas for your vertical.</span>
             </div>
             <div className="flex flex-col gap-1">
               <span className="font-medium">② Install &amp; Configure</span>
-              <span className="text-blue-600 text-xs">Run the 4-step wizard: overview → config fields → access policy → confirm. Your n8n workflow is cloned automatically.</span>
+              <span className="text-blue-600 dark:text-blue-400 text-xs">Run the 4-step wizard: overview → config fields → access policy → confirm. Your n8n workflow is cloned automatically.</span>
             </div>
             <div className="flex flex-col gap-1">
               <span className="font-medium">③ Monitor here</span>
-              <span className="text-blue-600 text-xs">Automata dashboard shows real-time status, last run result, and an activity feed across all installed apps.</span>
+              <span className="text-blue-600 dark:text-blue-400 text-xs">Automata dashboard shows real-time status, last run result, and an activity feed across all installed apps.</span>
             </div>
           </div>
           <div className="pt-1">
@@ -449,10 +449,10 @@ export function AutomataDashboard({
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-10 text-center text-gray-500">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-10 text-center text-gray-500 dark:text-gray-400">
           <span className="text-4xl block mb-3">⚡</span>
-          <p className="font-medium text-gray-700">No automations installed yet</p>
-          <p className="text-sm mt-1 text-gray-400">Visit the App Store to install your first integration.</p>
+          <p className="font-medium text-gray-700 dark:text-gray-300">No automations installed yet</p>
+          <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Visit the App Store to install your first integration.</p>
         </div>
       </div>
     );

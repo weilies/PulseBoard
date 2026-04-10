@@ -7,6 +7,7 @@ import { PageTracker } from "@/components/page-tracker";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { buildNavTree } from "@/lib/services/nav.service";
 import type { NavFolder, NavItem } from "@/lib/services/nav.service";
+import { FeedbackOverlay } from "@/components/feedback-overlay";
 
 export default async function DashboardLayout({
  children,
@@ -62,6 +63,12 @@ export default async function DashboardLayout({
  const currentTenantEntry = (tenants as any[]).find(t => t.tenant_id === tenantId);
  const isSuperTenant = (currentTenantEntry as any)?.tenants?.is_super ?? false;
 
+ // Tenant feedback_mode
+ const { data: tenantMeta } = tenantId
+ ? await supabase.from("tenants").select("feedback_mode").eq("id", tenantId).maybeSingle()
+ : { data: null };
+ const feedbackMode = tenantMeta?.feedback_mode ?? false;
+
  // User profile: timezone + avatar
  const { data: profileData } = await supabase
  .from("profiles")
@@ -91,6 +98,7 @@ export default async function DashboardLayout({
  currentTenantId={tenantId}
  isSuperAdmin={isSuperAdmin}
  isSuperTenant={isSuperTenant}
+ feedbackMode={feedbackMode}
  accessiblePages={accessiblePages}
  rootFolders={rootFolders}
  rootItems={rootItems}
@@ -98,6 +106,9 @@ export default async function DashboardLayout({
  >
  <PageTracker />
  <ErrorBoundary>{children}</ErrorBoundary>
+ {feedbackMode && tenantId && (
+  <FeedbackOverlay tenantId={tenantId} userId={user.id} />
+ )}
  </DashboardShell>
  );
 }

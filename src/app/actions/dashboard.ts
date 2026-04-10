@@ -31,10 +31,11 @@ export async function updateTenant(formData: FormData) {
   const contactName = (formData.get("contactName") as string) || undefined;
   const contactEmail = (formData.get("contactEmail") as string) || undefined;
   const timezone = (formData.get("timezone") as string) || undefined;
+  const feedbackMode = formData.get("feedbackMode") === "true";
   if (!tenantId) return { error: "Tenant ID is required" };
 
   const supabase = await createClient();
-  return TenantsService.updateTenant(supabase, { tenantId, name, slug, contactName, contactEmail, timezone });
+  return TenantsService.updateTenant(supabase, { tenantId, name, slug, contactName, contactEmail, timezone, feedbackMode });
 }
 
 export async function deleteTenant(formData: FormData) {

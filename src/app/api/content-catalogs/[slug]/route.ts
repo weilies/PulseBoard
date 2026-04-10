@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     .select(`
       id, slug, name, description, columns, created_at,
       content_catalog_items (
-        id, value, label, sort_order, is_active
+        id, value, label, sort_order, is_active, data
       )
     `)
     .eq("slug", slug)

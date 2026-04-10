@@ -276,13 +276,6 @@ export default async function CollectionItemsPage({
  <TableHead key={f.id} className="text-gray-500 dark:text-gray-400 whitespace-nowrap">{getFieldLabel(f, currentLocale)}</TableHead>
  )
  )}
- <SortableHead
- label="Created"
- field="created_at"
- currentSort={sortCol}
- currentDir={dirLabel}
- basePath={`/dashboard/c/${slug}`}
- />
  {(canUpdate || canDelete) && <TableHead className="w-10" />}
  {hasChildren && <TableHead className="w-8" />}
  </TableRow>
@@ -315,9 +308,6 @@ export default async function CollectionItemsPage({
  </TableCell>
  );
  })}
- <TableCell className="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
- {new Date(item.created_at).toLocaleDateString()}
- </TableCell>
  {(canUpdate || canDelete) && (
  <TableCell>
  <ItemRowActions

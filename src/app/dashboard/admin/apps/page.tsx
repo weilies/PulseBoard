@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getUser, getUserRole } from "@/lib/auth";
 import { resolveTenant } from "@/lib/tenant";
 import { notFound } from "next/navigation";
-import { Settings2 } from "lucide-react";
 import { AdminAppCatalogClient } from "./apps-admin-client";
 
 export default async function AdminAppCatalogPage() {
@@ -34,35 +33,18 @@ export default async function AdminAppCatalogPage() {
     countMap[row.app_id] = (countMap[row.app_id] ?? 0) + 1;
   }
 
-  // Fetch tenants for tenant_specific picker
-  const { data: tenants } = await db
-    .from("tenants")
-    .select("id, name, slug")
-    .order("name");
+  // Fetch tenants for tenant_specific picker + super-tenant flag
+  const [{ data: tenants }, { data: tenantRow }] = await Promise.all([
+    db.from("tenants").select("id, name, slug").order("name"),
+    db.from("tenants").select("is_super").eq("id", tenantId).maybeSingle(),
+  ]);
+  const isSuperTenant = tenantRow?.is_super ?? false;
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Settings2 className="h-6 w-6 text-blue-600" />
-          <div>
-            <h1
-              className="text-xl font-bold text-gray-900"
-              style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}
-            >
-              Platform App Catalog
-            </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Manage apps published to tenants via App Store
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <AdminAppCatalogClient
-        apps={(apps ?? []).map((a) => ({ ...a, installCount: countMap[a.id] ?? 0 }))}
-        tenants={tenants ?? []}
-      />
-    </div>
+    <AdminAppCatalogClient
+      apps={(apps ?? []).map((a) => ({ ...a, installCount: countMap[a.id] ?? 0 }))}
+      tenants={tenants ?? []}
+      isSuperTenant={isSuperTenant}
+    />
   );
 }

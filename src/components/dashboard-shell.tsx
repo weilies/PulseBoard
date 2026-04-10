@@ -26,12 +26,13 @@ interface DashboardShellProps {
  rootFolders: NavFolder[];
  rootItems: NavItem[];
  collectionMap: Map<string, CollectionInfo>;
+ feedbackMode?: boolean;
  children: React.ReactNode;
 }
 
 export function DashboardShell({
  userEmail, userName, userRole, userId, userTimezone, avatarUrl, tenants, currentTenantId, isSuperAdmin, isSuperTenant,
- accessiblePages, rootFolders, rootItems, collectionMap,
+ accessiblePages, rootFolders, rootItems, collectionMap, feedbackMode,
  children,
 }: DashboardShellProps) {
  const [mobileOpen, setMobileOpen] = useState(false);
@@ -59,6 +60,7 @@ export function DashboardShell({
  rootFolders={rootFolders}
  rootItems={rootItems}
  collectionMap={collectionMap}
+ feedbackMode={feedbackMode}
  collapsed={collapsed}
  onToggleCollapse={toggleCollapsed}
  />
@@ -72,6 +74,7 @@ export function DashboardShell({
  rootFolders={rootFolders}
  rootItems={rootItems}
  collectionMap={collectionMap}
+ feedbackMode={feedbackMode}
  onNavigate={() => setMobileOpen(false)}
  />
  </SheetContent>

@@ -5,8 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Building2, FlaskConical, Database,
-  BookOpen, Layers, ChevronDown, ChevronLeft, ChevronRight, Shield, FileKey, Folder, FolderOpen,
-  Boxes, Box, Map, Lock, KeyRound, Workflow, Plug2, Webhook, ScrollText, Store, Settings2,
+  BookOpen, Layers, ChevronDown, Menu, Shield, FileKey, Folder, FolderOpen,
+  Boxes, Box, Map, Lock, KeyRound, Workflow, Plug2, Webhook, ScrollText, Store, Settings2, MessageSquarePlus,
 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 
@@ -46,7 +46,7 @@ const PAGE_CONFIG: Record<string, { href: string; label: string; Icon: React.Com
   "studio.logs": { href: "/dashboard/studio/logs", label: "Activity Log", Icon: ScrollText },
 };
 
-const STUDIO_PAGES = ["studio.system-collections", "studio.content-catalog", "studio.tenant-collections", "studio.queries", "studio.logs", "admin.platform-apps"];
+const STUDIO_PAGES = ["studio.system-collections", "studio.content-catalog", "studio.tenant-collections", "studio.queries", "studio.logs"];
 
 // Studio pages sorted alphabetically by label
 const STUDIO_PAGES_SORTED = [...STUDIO_PAGES].sort((a, b) =>
@@ -60,6 +60,7 @@ interface SidebarProps {
   rootFolders: NavFolder[];
   rootItems: NavItem[];
   collectionMap: Map<string, CollectionInfo>;
+  feedbackMode?: boolean;
   onNavigate?: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -243,7 +244,7 @@ function SubNavLink({
 // Main Sidebar
 // ---------------------------------------------------------------------------
 
-export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap, onNavigate, collapsed = false, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap, feedbackMode, onNavigate, collapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
 
   const pageSet = new Set(accessiblePages);
@@ -268,8 +269,8 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
   const [studioOpen, setStudioOpen] = useState(studioActive);
 
   // Integration folder: API Access (apps), App Store, Automata, Webhooks
-  const hasIntegrationAccess = pageSet.has("apps") || pageSet.has("webhooks") || pageSet.has("studio.app-store") || pageSet.has("studio.automata");
-  const integrationActive = pathname.startsWith("/dashboard/apps") || pathname.startsWith("/dashboard/webhooks") || pathname.startsWith("/dashboard/studio/app-store") || pathname.startsWith("/dashboard/studio/automata");
+  const hasIntegrationAccess = pageSet.has("apps") || pageSet.has("webhooks") || pageSet.has("studio.app-store") || pageSet.has("studio.automata") || pageSet.has("admin.platform-apps");
+  const integrationActive = pathname.startsWith("/dashboard/apps") || pathname.startsWith("/dashboard/webhooks") || pathname.startsWith("/dashboard/studio/app-store") || pathname.startsWith("/dashboard/studio/automata") || pathname.startsWith("/dashboard/admin/apps");
   const [integrationOpen, setIntegrationOpen] = useState(integrationActive);
 
   // Separate root nav items into page items and collection items
@@ -279,21 +280,34 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
   // Check if collections section has any items (including in folders)
   const hasCollections = rootCollectionItems.length > 0 || rootFolders.length > 0;
 
+  if (collapsed) {
+    return (
+      <aside className="flex h-full flex-col border-r bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 dark:bg-gray-900 transition-all duration-200 overflow-hidden w-14">
+        <div className="flex-1" />
+        <div className="border-t border-gray-200 dark:border-gray-700 flex justify-center p-2">
+          <button
+            onClick={onToggleCollapse}
+            title="Click to expand"
+            className="flex items-center justify-center h-8 w-8 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
   return (
-    <aside className={cn("flex h-full flex-col border-r bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 dark:bg-gray-900 transition-all duration-200 overflow-hidden", collapsed ? "w-14" : "w-64")}>
+    <aside className="flex h-full flex-col border-r bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 dark:bg-gray-900 transition-all duration-200 overflow-hidden w-64">
       {/* Logo */}
       <div className="flex h-14 items-center border-b border-gray-200 dark:border-gray-700 px-4 justify-between">
-        {collapsed ? (
-          <span className="text-lg font-bold text-blue-600 dark:text-blue-400 mx-auto">P</span>
-        ) : (
-          <Link
-            href="/dashboard"
-            onClick={onNavigate}
-            className="text-lg font-bold text-blue-600 dark:text-blue-400 tracking-tight"
-          >
-            PulseBox
-          </Link>
-        )}
+        <Link
+          href="/dashboard"
+          onClick={onNavigate}
+          className="text-lg font-bold text-blue-600 dark:text-blue-400 tracking-tight"
+        >
+          PulseBox
+        </Link>
       </div>
 
       {/* Navigation */}
@@ -388,20 +402,27 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
                 {(() => {
                   type StudioEntry =
                     | { kind: "page"; slug: string }
-                    | { kind: "nav" };
+                    | { kind: "nav" }
+                    | { kind: "feedback" };
                   const entries: StudioEntry[] = [
                     ...visibleStudioPages.map((slug): StudioEntry => ({ kind: "page", slug })),
                     ...(pageSet.has("roles") ? [{ kind: "nav" } as StudioEntry] : []),
+                    ...(feedbackMode ? [{ kind: "feedback" } as StudioEntry] : []),
                   ];
                   entries.sort((a, b) => {
-                    const labelA = a.kind === "page" ? PAGE_CONFIG[a.slug].label : "Navigations";
-                    const labelB = b.kind === "page" ? PAGE_CONFIG[b.slug].label : "Navigations";
+                    const labelA = a.kind === "page" ? PAGE_CONFIG[a.slug].label : a.kind === "nav" ? "Navigations" : "UI Feedback";
+                    const labelB = b.kind === "page" ? PAGE_CONFIG[b.slug].label : b.kind === "nav" ? "Navigations" : "UI Feedback";
                     return labelA.localeCompare(labelB);
                   });
                   return entries.map((entry, i) => {
                     if (entry.kind === "nav") {
                       return (
                         <SubNavLink key="nav" href="/dashboard/nav" icon={Map} label="Navigations" pathname={pathname} onNavigate={onNavigate} />
+                      );
+                    }
+                    if (entry.kind === "feedback") {
+                      return (
+                        <SubNavLink key="feedback" href="/dashboard/feedback" icon={MessageSquarePlus} label="UI Feedback" pathname={pathname} onNavigate={onNavigate} />
                       );
                     }
                     const config = PAGE_CONFIG[entry.slug];
@@ -454,6 +475,7 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
                 {pageSet.has("apps") && <SubNavLink href="/dashboard/apps" icon={KeyRound} label="API Access" pathname={pathname} onNavigate={onNavigate} />}
                 {pageSet.has("studio.app-store") && <SubNavLink href="/dashboard/studio/app-store" icon={Store} label="App Store" pathname={pathname} onNavigate={onNavigate} />}
                 {pageSet.has("studio.automata") && <SubNavLink href="/dashboard/studio/automata" icon={Workflow} label="Automata" pathname={pathname} onNavigate={onNavigate} />}
+                {pageSet.has("admin.platform-apps") && <SubNavLink href="/dashboard/admin/apps" icon={Settings2} label="Platform Apps" pathname={pathname} onNavigate={onNavigate} />}
                 {pageSet.has("webhooks") && <SubNavLink href="/dashboard/webhooks" icon={Webhook} label="Webhooks" pathname={pathname} onNavigate={onNavigate} />}
               </div>
             )}
@@ -490,17 +512,15 @@ export function Sidebar({ accessiblePages, rootFolders, rootItems, collectionMap
             <button
               onClick={onToggleCollapse}
               className="flex items-center justify-center h-8 w-8 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title="Collapse sidebar"
             >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              <Menu className="h-4 w-4" />
             </button>
           </div>
         )}
-        {!collapsed && (
-          <div className="px-3 pb-3 text-xs text-gray-400 dark:text-gray-400 text-center" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
-            v1.0 Quantum
-          </div>
-        )}
+        <div className="px-3 pb-3 text-xs text-gray-400 dark:text-gray-400 text-center" style={{ fontFamily: "var(--font-geist-sans), sans-serif" }}>
+          PulseBox v1.7 · FeedLoop
+        </div>
       </div>
     </aside>
   );

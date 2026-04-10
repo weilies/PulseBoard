@@ -34,6 +34,7 @@ interface EditTenantDialogProps {
  currentContactName?: string | null;
  currentContactEmail?: string | null;
  currentTimezone?: string | null;
+ currentFeedbackMode?: boolean;
  onDeleteRequest?: () => void;
 }
 
@@ -46,6 +47,7 @@ export function EditTenantDialog({
  currentContactName,
  currentContactEmail,
  currentTimezone,
+ currentFeedbackMode = false,
  onDeleteRequest,
 }: EditTenantDialogProps) {
  const router = useRouter();
@@ -54,6 +56,7 @@ export function EditTenantDialog({
  const [contactName, setContactName] = useState(currentContactName ?? "");
  const [contactEmail, setContactEmail] = useState(currentContactEmail ?? "");
  const [timezone, setTimezone] = useState(currentTimezone ?? "Asia/Singapore");
+ const [feedbackMode, setFeedbackMode] = useState(currentFeedbackMode);
  const [loading, setLoading] = useState(false);
 
  async function handleSubmit(e: React.FormEvent) {
@@ -65,6 +68,7 @@ export function EditTenantDialog({
  formData.set("name", name);
  formData.set("slug", slug);
  formData.set("timezone", timezone);
+ formData.set("feedbackMode", String(feedbackMode));
  if (contactName) formData.set("contactName", contactName);
  if (contactEmail) formData.set("contactEmail", contactEmail);
 
@@ -155,6 +159,21 @@ export function EditTenantDialog({
  </SelectContent>
  </Select>
  <p className="text-xs text-gray-500 dark:text-gray-400">Users can override this in their profile.</p>
+ </div>
+ <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3">
+  <div>
+   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Feedback Mode</p>
+   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Allow users to right-click and annotate UI elements for batch fixes.</p>
+  </div>
+  <button
+   type="button"
+   role="switch"
+   aria-checked={feedbackMode}
+   onClick={() => setFeedbackMode((v) => !v)}
+   className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${feedbackMode ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"}`}
+  >
+   <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${feedbackMode ? "translate-x-4" : "translate-x-0"}`} />
+  </button>
  </div>
  </div>
  <DialogFooter className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">

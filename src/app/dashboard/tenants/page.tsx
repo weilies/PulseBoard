@@ -39,7 +39,7 @@ export default async function TenantsPage({
  const supabase = await createClient();
  let q = supabase
  .from("tenants")
- .select("id, name, slug, is_super, created_at, contact_name, contact_email, timezone", { count: "exact" });
+ .select("id, name, slug, is_super, created_at, contact_name, contact_email, timezone, feedback_mode", { count: "exact" });
 
  if (filters.name) q = q.ilike("name", `%${filters.name}%`);
  if (filters.slug) q = q.ilike("slug", `%${filters.slug}%`);
@@ -135,6 +135,7 @@ export default async function TenantsPage({
  contactName={t.contact_name}
  contactEmail={t.contact_email}
  timezone={t.timezone}
+ feedbackMode={t.feedback_mode ?? false}
  />
  </TableCell>
  </TableRow>
